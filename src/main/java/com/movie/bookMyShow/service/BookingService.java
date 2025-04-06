@@ -27,7 +27,6 @@ public class BookingService {
     private ShowRepo showRepo;
     @Autowired
     private BookingRepo bookingRepo;
-
     @Transactional
     public Ticket bookSeats(BookingRequest request) {
 
@@ -44,12 +43,11 @@ public class BookingService {
                 throw new SeatAlreadyBookedException("Seat " + seat.getRow()+" "+seat.getSeatNo() + " is already booked! ❌");
             }
             bookedSeats.add(seat); // Mark seat as booked
-
         }
         for (Seat seat:seats){
             show.addBookedSeat(seat); // Add to show
         }
-        // ✅ Save booking (No need to save `show`, Hibernate tracks changes)
+
         Ticket ticket = new Ticket();
         ticket.setShow(show);
         ticket.setSeats(seats);

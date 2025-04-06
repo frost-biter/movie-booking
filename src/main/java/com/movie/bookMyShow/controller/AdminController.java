@@ -1,13 +1,20 @@
 package com.movie.bookMyShow.controller;
 
 import com.movie.bookMyShow.dto.ApiResponse;
+import com.movie.bookMyShow.dto.CredentialsRequest;
 import com.movie.bookMyShow.dto.ShowRequest;
 import com.movie.bookMyShow.model.*;
 import com.movie.bookMyShow.service.*;
+import com.movie.bookMyShow.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+
+
+import java.util.Map;
+
 
 @RestController
 @RequestMapping("/admin")
@@ -64,5 +71,30 @@ public class AdminController {
     public ResponseEntity<ApiResponse> addSeat(@RequestBody Seat seat) {
         ApiResponse response = seatService.addSeat(seat);
         return ResponseEntity.status(response.getStatus()).body(response);
+    }
+    @Autowired
+    private AdminService adminService;
+
+    @PostMapping("/register")
+    public ResponseEntity<String> register(@RequestBody CredentialsRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(adminService.register(request));
+    }
+
+    private final JwtUtil jwtUtil;
+    @Autowired
+    private BCryptPasswordEncoder passwordEncoder;
+    AdminController (JwtUtil jwtUtil) {this.jwtUtil = jwtUtil;}
+    @PostMapping("/login")
+    public ResponseEntity<Map<String, String>> login(@RequestBody CredentialsRequest request) {
+        String username = request.getUsername();
+        // 1. Validate credentials
+        Admin admin = adminService.findByUsername(username);
+        if (admin == null || !passwordEncoder.matches(request.getPassword(), admin.getPassword())) { // You should hash and compare
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Invalid credentials"));
+        }
+        String role = admin.getRole(); // fetch role from DB
+        String token = jwtUtil.generateAdminToken(username, role);
+
+        return ResponseEntity.ok(Map.of("token", token));
     }
 }

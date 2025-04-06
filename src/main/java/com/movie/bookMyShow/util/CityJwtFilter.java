@@ -1,6 +1,5 @@
 package com.movie.bookMyShow.util;
 
-import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -14,14 +13,19 @@ import java.io.IOException;
 import java.util.Collections;
 
 @Component
-public class JwtFilter extends OncePerRequestFilter {
+public class CityJwtFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
 
-    public JwtFilter(JwtUtil jwtUtil) {
+    public CityJwtFilter(JwtUtil jwtUtil) {
         this.jwtUtil = jwtUtil;
     }
 
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        // Only filter if it's not an admin route
+        return request.getRequestURI().startsWith("/admin");
+    }
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
@@ -29,16 +33,6 @@ public class JwtFilter extends OncePerRequestFilter {
 
         if (token != null && token.startsWith("Bearer ")) {
             token = token.replace("Bearer ","");
-//            Integer cityId = jwtUtil.extractCityId(token); // Extract city from token
-//
-//            if (cityId != null) {
-//                request.setAttribute("cityId", cityId);
-//
-//                // ✅ Set authentication in SecurityContext
-//                UsernamePasswordAuthenticationToken authentication =
-//                        new UsernamePasswordAuthenticationToken(cityId, null, Collections.emptyList()); // No roles needed
-//                SecurityContextHolder.getContext().setAuthentication(authentication);
-//            }
             try {
                 Integer cityId = jwtUtil.extractCityId(token);
                 if (cityId != null) {
@@ -48,7 +42,7 @@ public class JwtFilter extends OncePerRequestFilter {
                     );
                 }
             } catch (Exception e) {
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid token");
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid City token");
                 return;
             }
         }

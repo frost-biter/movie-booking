@@ -1,14 +1,13 @@
 package com.movie.bookMyShow.config;
 
-import com.movie.bookMyShow.util.JwtFilter;
+import com.movie.bookMyShow.util.AdminJwtFilter;
+import com.movie.bookMyShow.util.CityJwtFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpStatus;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import jakarta.servlet.FilterChain;
@@ -17,7 +16,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.authentication.www.BasicAuthenticationEntryPoint;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -67,10 +65,12 @@ import java.io.IOException;
 @Configuration
 public class SecurityConfig {
 
-    private final JwtFilter jwtFilter;
+    private final CityJwtFilter cityJwtFilter;
+    private final AdminJwtFilter adminJwtFilter;
 
-    public SecurityConfig(JwtFilter jwtFilter) {
-        this.jwtFilter = jwtFilter;
+    public SecurityConfig(CityJwtFilter cityJwtFilter, AdminJwtFilter adminJwtFilter) {
+        this.cityJwtFilter = cityJwtFilter;
+        this.adminJwtFilter = adminJwtFilter;
     }
 
     @Bean
@@ -80,15 +80,17 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/city/**").permitAll() // Public access
-                        .requestMatchers("/admin/**").authenticated() // Only require auth (no roles)
+                        .requestMatchers("/admin/register", "/admin/login").permitAll()
+                        .requestMatchers("/admin/update/**").hasRole("ADMIN")
                         .anyRequest().authenticated() // All other endpoints need JWT
                 )
-                .httpBasic(Customizer.withDefaults()) // Basic Auth for /admin
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class); // JWT for others
+                .httpBasic(AbstractHttpConfigurer::disable)
+                .addFilterBefore(adminJwtFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(cityJwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
-        public static class RequestLoggingFilter extends OncePerRequestFilter {
+    public static class RequestLoggingFilter extends OncePerRequestFilter {
         @Override
         protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
                 throws ServletException, IOException {
@@ -97,5 +99,10 @@ public class SecurityConfig {
             System.out.println("🔍 Authenticated? " + (authentication != null));
             filterChain.doFilter(request, response);
         }
+    }
+
+    @Bean
+    public BCryptPasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
     }
 }
