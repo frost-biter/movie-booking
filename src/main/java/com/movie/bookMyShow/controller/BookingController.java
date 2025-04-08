@@ -19,17 +19,13 @@ public class BookingController {
     private BookingService bookingService;
 
     @PostMapping("/seats")
-    public ResponseEntity<Ticket> createBooking(@RequestBody BookingRequest request) {
+    public ResponseEntity<Ticket> createBooking(@RequestBody BookingRequest request) throws InterruptedException {
         System.out.println("Show ID: " + request.getShowId());
         System.out.println("Seat ID: " + request.getSeatIds().getFirst());
 
         Ticket ticket = bookingService.bookSeats(request);
 
-        if (ticket != null) {
-            return ResponseEntity.ok(ticket);
-        } else {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(null);
-        }
+        return ResponseEntity.ok(ticket);
     }
 
 }

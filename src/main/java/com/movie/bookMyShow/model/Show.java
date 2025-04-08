@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -35,22 +36,14 @@ public class Show {
     @Temporal(TemporalType.TIMESTAMP)
     private LocalDateTime endTime;
 
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-            name = "show_booked_seats",
-            joinColumns = @JoinColumn(name = "show_id"),
-            inverseJoinColumns = @JoinColumn(name = "seat_id")
-    )
-    @JsonIgnore
-    private List<Seat> bookedSeats ; // Stores actual Seat objects
+    @OneToMany(mappedBy = "show", cascade = CascadeType.ALL)
+    private List<ShowSeat> showSeats = new ArrayList<>();
 
     @ManyToOne
     @JoinColumn(name = "theatre_id", nullable = false)
     @JsonIgnore
     private Theatre theatre;
 
-//    @OneToMany(mappedBy = "show", cascade = CascadeType.ALL, orphanRemoval = true,fetch = FetchType.LAZY)
-//    private List<Ticket> tickets;
     @PrePersist
     @PreUpdate
     private void prePersistAndValidate() {
@@ -67,12 +60,5 @@ public class Show {
                             " does not belong to Theatre " + theatre.getTheatreId()
             );
         }
-    }
-
-    public void addBookedSeat(Seat seat) {
-        if (bookedSeats == null) {
-            bookedSeats = new java.util.ArrayList<>();
-        }
-        bookedSeats.add(seat);
     }
 }

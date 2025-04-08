@@ -3,6 +3,7 @@ package com.movie.bookMyShow.controller;
 import com.movie.bookMyShow.dto.TheatreDTO;
 import com.movie.bookMyShow.model.Seat;
 import com.movie.bookMyShow.service.SeatService;
+import com.movie.bookMyShow.service.ShowSeatService;
 import com.movie.bookMyShow.service.ShowService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -24,11 +25,11 @@ public class ShowController {
     }
 
     @Autowired
-    private SeatService seatService;
+    private ShowSeatService showSeatService;
 
     @GetMapping("/show-id-{showId}")
     public ResponseEntity<List<Seat>> getAvailableSeats(@PathVariable Long showId) {
-        List<Seat> availableSeats = seatService.getAvailableSeats(showId);
+        List<Seat> availableSeats = showSeatService.getAvailableSeats(showId);
         return ResponseEntity.ok(availableSeats);
     }
 }
