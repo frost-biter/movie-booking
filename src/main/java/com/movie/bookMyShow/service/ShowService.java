@@ -5,16 +5,11 @@ import com.movie.bookMyShow.dto.ShowDTO;
 import com.movie.bookMyShow.dto.ShowRequest;
 import com.movie.bookMyShow.dto.TheatreDTO;
 import com.movie.bookMyShow.exception.ResourceNotFoundException;
-import com.movie.bookMyShow.model.Movie;
-import com.movie.bookMyShow.model.Screen;
-import com.movie.bookMyShow.model.Show;
-import com.movie.bookMyShow.model.Theatre;
-import com.movie.bookMyShow.repo.MovieRepo;
-import com.movie.bookMyShow.repo.ScreenRepo;
-import com.movie.bookMyShow.repo.ShowRepo;
-import com.movie.bookMyShow.repo.TheatreRepo;
+import com.movie.bookMyShow.model.*;
+import com.movie.bookMyShow.repo.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -34,7 +29,10 @@ public class ShowService {
     @Autowired
     private ShowRepo showRepo;
 
+    @Transactional
     public ApiResponse addShow(ShowRequest request) {
+        validateShowRequest(request);
+
         Movie movie = movieRepo.findById((long) request.getMovieId())
                 .orElseThrow(() -> new ResourceNotFoundException("Movie not found"));
 
@@ -44,13 +42,7 @@ public class ShowService {
         Screen screen = screenRepo.findById((long) request.getScreenId())
                 .orElseThrow(() -> new ResourceNotFoundException("Screen not found"));
 
-        // Verify screen belongs to the specified theatre
-        if (!screen.getTheatre().getTheatreId().equals(theatre.getTheatreId())) {
-            throw new IllegalArgumentException(
-                    "Screen " + screen.getScreenId() +
-                            " does not belong to Theatre " + theatre.getTheatreId()
-            );
-        }
+        validateScreenTheatreRelationship(screen, theatre);
 
         Show show = new Show();
         show.setMovie(movie);
@@ -61,8 +53,25 @@ public class ShowService {
         if(isOverlapping){
             return new ApiResponse(409, "Show is Overlapping");
         }
+
         showRepo.save(show);
+
         return new ApiResponse(201, "Show added successfully");
+    }
+    
+
+    private void validateShowRequest(ShowRequest request) {
+        if (request == null || request.getStartTime() == null) {
+            throw new IllegalArgumentException("Invalid show request");
+        }
+    }
+    private void validateScreenTheatreRelationship(Screen screen, Theatre theatre) {
+        if (!screen.getTheatre().getTheatreId().equals(theatre.getTheatreId())) {
+            throw new IllegalArgumentException(
+                    "Screen " + screen.getScreenId() +
+                    " does not belong to Theatre " + theatre.getTheatreId()
+            );
+        }
     }
 
     public List<TheatreDTO> getTheatresWithShows(int movieId, Integer cityId) {

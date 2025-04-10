@@ -4,7 +4,6 @@ import com.movie.bookMyShow.enums.SeatStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.Instant;
 import java.time.LocalDateTime;
 
 @Entity
@@ -14,6 +13,7 @@ import java.time.LocalDateTime;
 @Builder
 public class ShowSeat {
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private String Id;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -31,7 +31,4 @@ public class ShowSeat {
     @Setter
     @Column(name = "hold_until")
     private LocalDateTime holdUntil;
-
-    public void setHeld(boolean b) {
-    }
 }
