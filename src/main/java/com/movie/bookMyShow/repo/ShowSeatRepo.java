@@ -42,4 +42,12 @@ public interface ShowSeatRepo extends JpaRepository<ShowSeat, Long>{
                                           @Param("screenId") Long screenId,
                                           @Param("seatIds") List<Long> seatIds);
 
+    @Query("SELECT COUNT(ss) > 0 FROM ShowSeat ss WHERE ss.show.showId = :showId AND ss.seat.seatId IN :seatIds AND ss.status = :status")
+    boolean existsByShowIdAndSeatIdInAndStatus(@Param("showId") Long showId, 
+                                              @Param("seatIds") List<Long> seatIds, 
+                                              @Param("status") SeatStatus status);
+
+    @Query("SELECT ss FROM ShowSeat ss WHERE ss.show.showId = :showId AND ss.seat.seatId IN :seatIds")
+    List<ShowSeat> findByShowIdAndSeatIdIn(@Param("showId") Long showId, 
+                                          @Param("seatIds") List<Long> seatIds);
 }

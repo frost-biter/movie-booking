@@ -14,10 +14,10 @@ import java.util.Set;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class Ticket {
+public class Booking {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int ticketId;
+    private Long bookingId;
 
     @ManyToOne
     @JoinColumn(name = "show_id", nullable = false) // Foreign key for Screen
@@ -25,8 +25,8 @@ public class Ticket {
 
     @ManyToMany
     @JoinTable(
-            name = "ticket_seats",
-            joinColumns = @JoinColumn(name = "ticket_id"),
+            name = "booking_seats",
+            joinColumns = @JoinColumn(name = "booking_id"),
             inverseJoinColumns = @JoinColumn(name = "seat_id")
     )
     private List<Seat> Seats; // Stores actual Seat objects

@@ -28,6 +28,7 @@ public class Show {
 
     @ManyToOne
     @JoinColumn(name = "screen_id", nullable = false) // Foreign key for Screen
+    @JsonIgnore
     private Screen screen; // Use object reference instead of just screenId
 
     @Temporal(TemporalType.TIMESTAMP)

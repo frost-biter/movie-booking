@@ -1,73 +1,42 @@
 package com.movie.bookMyShow.service;
 
+import com.movie.bookMyShow.dto.ApiResponse;
 import com.movie.bookMyShow.dto.BookingRequest;
-import com.movie.bookMyShow.enums.SeatStatus;
-import com.movie.bookMyShow.exception.PaymentFailedException;
 import com.movie.bookMyShow.exception.ResourceNotFoundException;
-import com.movie.bookMyShow.model.*;
-import com.movie.bookMyShow.repo.BookingRepo;
+import com.movie.bookMyShow.exception.SeatAlreadyHeldException;
+import com.movie.bookMyShow.model.Show;
 import com.movie.bookMyShow.repo.ShowRepo;
-import com.movie.bookMyShow.repo.ShowSeatRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
-import java.util.List;
 
 @Service
 public class BookingService {
     @Autowired
     private ShowRepo showRepo;
     @Autowired
-    private ShowSeatRepo showSeatRepo;
-    @Autowired
-    private BookingRepo bookingRepo;
+    private SeatHoldService seatHoldService;
     @Autowired
     private PaymentService paymentService;
-    @Autowired
-    private SeatHoldService seatHoldService;
 
     @Transactional
-    public Ticket bookSeats(BookingRequest request) {
+    public ApiResponse initiateBooking(BookingRequest request) {
+        // 1. Validate show exists
         Show show = showRepo.findById(request.getShowId())
                 .orElseThrow(() -> new ResourceNotFoundException("Show not found"));
 
-        // 1. Hold seats in Redis
-        String holdId = seatHoldService.holdSeats(request.getShowId(), request.getSeatIds());
-
-        try {
-            // 2. Process payment
-            boolean paymentSuccess = paymentService.processPayment(request);
-            if (!paymentSuccess) {
-                throw new PaymentFailedException("Payment failed! Please try again. ❌");
-            }
-
-            // 3. Create ShowSeat entries for booked seats
-            List<ShowSeat> showSeats = request.getSeatIds().stream()
-                .map(seatId -> {
-                    ShowSeat showSeat = new ShowSeat();
-                    showSeat.setShow(show);
-                    showSeat.setSeatId(seatId);
-                    showSeat.setStatus(SeatStatus.BOOKED);
-                    return showSeat;
-                })
-                .toList();
-
-            showSeatRepo.saveAll(showSeats);
-
-            // 4. Create ticket
-            Ticket ticket = new Ticket();
-            ticket.setShow(show);
-            ticket.setSeats(showSeats.stream().map(ShowSeat::getSeat).toList());
-            ticket.setPhoneNumber(request.getPhoneNumber());
-            ticket.setBookingTime(LocalDateTime.now());
-
-            return bookingRepo.save(ticket);
-        } catch (Exception e) {
-            // Release holds if anything fails
-            seatHoldService.releaseHold(request.getShowId(), holdId, request.getSeatIds());
-            throw e;
+        // 2. Check seat availability in Redis and DB
+        if (seatHoldService.areSeatsAvailable(request.getShowId(), request.getSeatIds())) {
+            // 3. Create hold in Redis
+            String holdId = seatHoldService.holdSeats(request.getShowId(), request.getSeatIds());
+            
+            // 4. Initiate async payment
+            paymentService.processPaymentAsync(holdId, request);
+            
+            // 5. Return response immediately
+            return new ApiResponse(202, "Payment process initiated. Seats held for 10 minutes. Hold ID: " + holdId);
+        } else {
+            throw new SeatAlreadyHeldException("One or more seats are already held or booked");
         }
     }
 }

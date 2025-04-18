@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -18,9 +19,9 @@ public class Screen {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long screenId;
 
-    @OneToMany(mappedBy = "screen", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "screen", cascade = CascadeType.ALL)
     @JsonIgnore
-    private List<Seat> seats; // One screen has many seats
+    private List<Seat> seats = new ArrayList<>(); // One screen has many seats
 
     @OneToMany(mappedBy = "screen", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
@@ -28,6 +29,5 @@ public class Screen {
 
     @ManyToOne
     @JoinColumn(name = "theatre_id",nullable = false,updatable = false)
-    @JsonIgnore
     private Theatre theatre;
 }

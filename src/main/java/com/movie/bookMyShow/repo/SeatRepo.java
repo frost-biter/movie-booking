@@ -10,7 +10,7 @@ import jakarta.persistence.LockModeType;
 import java.util.List;
 import java.util.Optional;
 
-public interface SeatRepo extends JpaRepository<Seat, Integer> {
+public interface SeatRepo extends JpaRepository<Seat, Long> {
 
     @Lock(LockModeType.PESSIMISTIC_WRITE) // 🔒 Lock seats to prevent simultaneous bookings
     @Query("SELECT s FROM Seat s WHERE s.seatId IN :seatIds")

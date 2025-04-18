@@ -4,7 +4,6 @@ import com.movie.bookMyShow.enums.SeatStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
 
 @Entity
 @Data
@@ -14,21 +13,17 @@ import java.time.LocalDateTime;
 public class ShowSeat {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private String Id;
+    private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "show_id")
+    @ManyToOne
+    @JoinColumn(name = "show_id", nullable = false)
     private Show show;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "seat_id")
+    @ManyToOne
+    @JoinColumn(name = "seat_id", nullable = false)
     private Seat seat;
 
     @Enumerated(EnumType.STRING)
     private SeatStatus status;
 
-    private Long heldAt;
-    @Setter
-    @Column(name = "hold_until")
-    private LocalDateTime holdUntil;
 }

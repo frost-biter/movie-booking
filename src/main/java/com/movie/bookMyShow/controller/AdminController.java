@@ -12,9 +12,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
-
+import java.util.List;
 import java.util.Map;
-
 
 @RestController
 @RequestMapping("/admin")
@@ -39,7 +38,7 @@ public class AdminController {
 
     @Autowired
     private CityService cityService;
-
+    @PostMapping("/add-city")
     public ResponseEntity<String> addCity(@RequestBody City city) {
         cityService.addCity(city);
         return ResponseEntity.status(HttpStatus.CREATED).body("City added successfully");

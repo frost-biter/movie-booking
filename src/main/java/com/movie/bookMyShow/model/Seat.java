@@ -1,5 +1,6 @@
 package com.movie.bookMyShow.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.movie.bookMyShow.enums.SeatCategory;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -18,6 +19,7 @@ public class Seat {
     private Long seatNo;
     @ManyToOne
     @JoinColumn(name = "screen_id", nullable = false) // 🔥 Ensure this exists
+    @JsonIgnore
     private Screen screen;  // 🔥 This must be here
     @Enumerated(EnumType.STRING)
     private SeatCategory category;
