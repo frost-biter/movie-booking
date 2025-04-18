@@ -46,16 +46,4 @@ public class CityController {
         Integer cityId = jwtUtil.extractCityId(token);
         return ResponseEntity.ok("Extracted cityId: " + cityId);
     }
-
-    @GetMapping("/slow")
-//    @Async
-    public void SlowDown1() throws InterruptedException {
-        long startTime = System.currentTimeMillis();
-        System.out.print("At : " + 0 + " started 1"+Thread.currentThread().getName()+"\n");
-        userController.SlowDown2(startTime);
-        userController.SlowDown3(startTime);
-        long endTime = System.currentTimeMillis();
-
-        System.out.print("At : " + (endTime - startTime) + " ended 1"+"\n");
-    }
 }

@@ -4,7 +4,9 @@ import com.movie.bookMyShow.model.Booking;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-@Repository
+import java.util.Optional;
 
-public interface BookingRepo extends JpaRepository<Booking,Long> {
+@Repository
+public interface BookingRepo extends JpaRepository<Booking, String> {
+    Optional<Booking> findByHoldId(String holdId);
 }

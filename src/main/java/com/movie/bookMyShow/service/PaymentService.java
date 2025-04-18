@@ -4,8 +4,10 @@ import com.movie.bookMyShow.dto.BookingRequest;
 import com.movie.bookMyShow.dto.TicketDTO;
 import com.movie.bookMyShow.enums.SeatStatus;
 import com.movie.bookMyShow.exception.ResourceNotFoundException;
+import com.movie.bookMyShow.model.Booking;
 import com.movie.bookMyShow.model.Show;
 import com.movie.bookMyShow.model.ShowSeat;
+import com.movie.bookMyShow.repo.BookingRepo;
 import com.movie.bookMyShow.repo.SeatRepo;
 import com.movie.bookMyShow.repo.ShowRepo;
 import com.movie.bookMyShow.repo.ShowSeatRepo;
@@ -31,6 +33,8 @@ public class PaymentService {
     private SeatRepo seatRepo;
     @Autowired
     private ShowSeatRepo showSeatRepo;
+    @Autowired
+    private BookingRepo bookingRepo;
 
     @Async
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -76,7 +80,7 @@ public class PaymentService {
 
         // Create permanent booking
         List<ShowSeat> showSeats = request.getSeatIds().stream()
-                .<ShowSeat>map(seatId -> {
+                .map(seatId -> {
                     com.movie.bookMyShow.model.Seat seat = seatRepo.findById(seatId)
                             .orElseThrow(() -> new ResourceNotFoundException("Seat not found"));
                     
@@ -89,22 +93,43 @@ public class PaymentService {
                 .collect(Collectors.toList());
 
         try {
+            // Save show seats first
             List<ShowSeat> savedSeats = showSeatRepo.saveAll(showSeats);
             log.info("Successfully saved {} show seats", savedSeats.size());
+
+            // Create and save booking
+            Booking booking = new Booking();
+            booking.setHoldId(holdId);
+            booking.setShow(show);
+            booking.setSeats(savedSeats.stream().map(ShowSeat::getSeat).collect(Collectors.toList()));
+            booking.setPrice(calculatePrice(savedSeats.size()));
+            booking.setPhoneNumber(request.getPhoneNumber());
+            booking.setBookingTime(LocalDateTime.now());
+
+            bookingRepo.save(booking);
+            log.info("Successfully created booking with hold ID: {}", holdId);
+
+            // Release the hold since booking is successful
+            seatHoldService.releaseHold(request.getShowId(), holdId, request.getSeatIds());
+
+            return new TicketDTO(
+                    show.getShowId(),
+                    show.getMovie().getMovieName(),
+                    show.getTheatre().getTheatreName(),
+                    show.getStartTime(),
+                    savedSeats.stream().map(ShowSeat::getSeat).collect(Collectors.toList()),
+                    request.getPhoneNumber(),
+                    LocalDateTime.now()
+            );
         } catch (Exception e) {
             log.error("Failed to save show seats: {}", e.getMessage());
             throw new RuntimeException("Failed to create booking", e);
         }
+    }
 
-        return new TicketDTO(
-                show.getShowId(),
-                show.getMovie().getMovieName(),
-                show.getTheatre().getTheatreName(),
-                show.getStartTime(),
-                seatRepo.findAllById(request.getSeatIds()),
-                request.getPhoneNumber(),
-                LocalDateTime.now()
-        );
+    private double calculatePrice(int numberOfSeats) {
+        // Simple pricing logic - can be enhanced later
+        return numberOfSeats * 200.0; // Assuming 200 per seat
     }
 
     private boolean processPaymentWithGateway(BookingRequest request) throws InterruptedException {

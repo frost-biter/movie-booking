@@ -16,8 +16,7 @@ import java.util.Set;
 @NoArgsConstructor
 public class Booking {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long bookingId;
+    private String holdId;
 
     @ManyToOne
     @JoinColumn(name = "show_id", nullable = false) // Foreign key for Screen
@@ -26,10 +25,10 @@ public class Booking {
     @ManyToMany
     @JoinTable(
             name = "booking_seats",
-            joinColumns = @JoinColumn(name = "booking_id"),
+            joinColumns = @JoinColumn(name = "hold_id"),
             inverseJoinColumns = @JoinColumn(name = "seat_id")
     )
-    private List<Seat> Seats; // Stores actual Seat objects
+    private List<Seat> seats; // Stores actual Seat objects
 
     private double price;
 

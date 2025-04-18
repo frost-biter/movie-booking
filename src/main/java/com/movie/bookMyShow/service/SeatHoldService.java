@@ -4,7 +4,6 @@ import com.movie.bookMyShow.enums.SeatStatus;
 import com.movie.bookMyShow.repo.ShowSeatRepo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.connection.RedisStringCommands;
 import org.springframework.data.redis.core.RedisOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.SessionCallback;
@@ -90,13 +89,15 @@ public class SeatHoldService {
                 // Use Redis transaction to ensure atomic check-and-delete
                 redisTemplate.execute(new SessionCallback<Boolean>() {
                     @Override
-                    public Boolean execute(RedisOperations operations) {
-                        operations.watch(key);
-                        String storedHoldId = (String) operations.opsForValue().get(key);
+                    @SuppressWarnings("unchecked")
+                    public <K, V> Boolean execute(RedisOperations<K, V> operations) {
+                        operations.watch((K)key);
+                        String storedHoldId = (String) operations.opsForValue().get((K)key);
                         if (storedHoldId != null && storedHoldId.equals(holdId)) {
                             operations.multi();
-                            operations.delete(key);
-                            return operations.exec() != null;
+                            operations.delete((K)key);
+                            List<Object> results = operations.exec();
+                            return results != null && !results.isEmpty();
                         }
                         return false;
                     }
@@ -111,14 +112,14 @@ public class SeatHoldService {
     public boolean validateHold(Long showId, String holdId, List<Long> seatIds) {
         log.info("Validating hold {} for show {} and seats {}", holdId, showId, seatIds);
         
-        // Use Redis transaction to ensure atomic validation
         return redisTemplate.execute(new SessionCallback<Boolean>() {
             @Override
-            public Boolean execute(RedisOperations operations) {
+            @SuppressWarnings("unchecked")
+            public <K, V> Boolean execute(RedisOperations<K, V> operations) {
                 operations.multi();
                 for (Long seatId : seatIds) {
                     String key = generateKey(showId, seatId);
-                    operations.opsForValue().get(key);
+                    operations.opsForValue().get((K)key);
                 }
                 List<Object> results = operations.exec();
                 
@@ -141,16 +142,17 @@ public class SeatHoldService {
         for (Long seatId : seatIds) {
             String key = generateKey(showId, seatId);
             try {
-                // Use Redis transaction to ensure atomic check-and-delete
                 redisTemplate.execute(new SessionCallback<Boolean>() {
                     @Override
-                    public Boolean execute(RedisOperations operations) {
-                        operations.watch(key);
-                        String storedHoldId = (String) operations.opsForValue().get(key);
+                    @SuppressWarnings("unchecked")
+                    public <K, V> Boolean execute(RedisOperations<K, V> operations) {
+                        operations.watch((K)key);
+                        String storedHoldId = (String) operations.opsForValue().get((K)key);
                         if (storedHoldId != null && storedHoldId.equals(holdId)) {
                             operations.multi();
-                            operations.delete(key);
-                            return operations.exec() != null;
+                            operations.delete((K)key);
+                            List<Object> results = operations.exec();
+                            return !results.isEmpty();
                         }
                         return false;
                     }

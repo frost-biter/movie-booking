@@ -2,9 +2,12 @@ package com.movie.bookMyShow.service;
 
 import com.movie.bookMyShow.dto.ApiResponse;
 import com.movie.bookMyShow.dto.BookingRequest;
+import com.movie.bookMyShow.dto.TicketDTO;
 import com.movie.bookMyShow.exception.ResourceNotFoundException;
 import com.movie.bookMyShow.exception.SeatAlreadyHeldException;
+import com.movie.bookMyShow.model.Booking;
 import com.movie.bookMyShow.model.Show;
+import com.movie.bookMyShow.repo.BookingRepo;
 import com.movie.bookMyShow.repo.ShowRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -18,6 +21,8 @@ public class BookingService {
     private SeatHoldService seatHoldService;
     @Autowired
     private PaymentService paymentService;
+    @Autowired
+    private BookingRepo bookingRepo;
 
     @Transactional
     public ApiResponse initiateBooking(BookingRequest request) {
@@ -38,5 +43,20 @@ public class BookingService {
         } else {
             throw new SeatAlreadyHeldException("One or more seats are already held or booked");
         }
+    }
+
+    public TicketDTO getBooking(String holdId) {
+        Booking booking = bookingRepo.findByHoldId(holdId)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found for hold ID: " + holdId));
+        
+        return new TicketDTO(
+                booking.getShow().getShowId(),
+                booking.getShow().getMovie().getMovieName(),
+                booking.getShow().getTheatre().getTheatreName(),
+                booking.getShow().getStartTime(),
+                booking.getSeats(),
+                booking.getPhoneNumber(),
+                booking.getBookingTime()
+        );
     }
 }
