@@ -80,7 +80,20 @@ public class PaymentService {
 
         // Validate the hold is still valid
         if (!seatHoldService.validateHold(request.getShowId(), holdId, request.getSeatIds())) {
-            throw new IllegalStateException("Seats are no longer available");
+            // Check if seats are still available and not booked
+            if (seatHoldService.areSeatsAvailable(request.getShowId(), request.getSeatIds())) {
+                log.info("Hold expired but seats are still available, creating new hold");
+                // Try to get a new hold
+                String newHoldId = seatHoldService.holdSeats(request.getShowId(), request.getSeatIds());
+                if (newHoldId != null) {
+                    // Create booking with new hold
+                    return createBookingAndGetTicket(request, newHoldId);
+                }
+            }
+            // If seats are not available, we need to initiate payment reversal
+            log.error("Seats are no longer available after payment, initiating payment reversal");
+            revertPayment(request);
+            throw new IllegalStateException("Seats are no longer available after payment");
         }
 
         // Create permanent booking
@@ -144,5 +157,35 @@ public class PaymentService {
         boolean success = Math.random() > 0.1; // 90% success rate
         log.info("Payment processing result: {}", success);
         return success;
+    }
+
+    private void revertPayment(BookingRequest request) {
+        try {
+            log.info("Initiating payment reversal for request: {}", request);
+            // Simulate payment reversal process
+            Thread.sleep(5000); // Simulate API call delay
+            
+            // Simulate different reversal scenarios
+            double random = Math.random();
+            if (random > 0.05) { // 95% success rate for reversal
+                log.info("Payment reversal successful for request: {}", request);
+                // Here you would typically:
+                // 1. Update transaction status in your system
+                // 2. Send notification to user
+                // 3. Update any relevant records
+            } else {
+                log.error("Payment reversal failed for request: {}", request);
+                // Here you would typically:
+                // 1. Log the failure
+                // 2. Trigger manual intervention process
+                // 3. Notify support team
+            }
+        } catch (Exception e) {
+            log.error("Error during payment reversal: {}", e.getMessage());
+            // Here you would typically:
+            // 1. Log the error
+            // 2. Trigger manual intervention process
+            // 3. Notify support team
+        }
     }
 }
