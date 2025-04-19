@@ -18,7 +18,7 @@ import java.util.UUID;
 @Service
 public class SeatHoldService {
     private static final String HOLD_KEY_PREFIX = "hold:";
-    private static final Duration HOLD_DURATION = Duration.ofMinutes(2); // Reduced for testing
+    private static final Duration HOLD_DURATION = Duration.ofMinutes(10); // Increased to 10 minutes
 
     @Autowired
     private RedisTemplate<String, String> redisTemplate;
@@ -163,6 +163,7 @@ public class SeatHoldService {
             }
         }
     }
+
     private String generateKey(Long showId, Long seatId) {
         return String.format("%s%d:%d", HOLD_KEY_PREFIX, showId, seatId);
     }

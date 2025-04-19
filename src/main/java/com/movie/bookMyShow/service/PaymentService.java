@@ -11,9 +11,10 @@ import com.movie.bookMyShow.repo.BookingRepo;
 import com.movie.bookMyShow.repo.SeatRepo;
 import com.movie.bookMyShow.repo.ShowRepo;
 import com.movie.bookMyShow.repo.ShowSeatRepo;
+import com.movie.bookMyShow.service.payment.PaymentGateway;
+import com.movie.bookMyShow.service.payment.PaymentGatewayFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -37,7 +38,7 @@ public class PaymentService {
     @Autowired
     private BookingRepo bookingRepo;
     @Autowired
-    private KafkaTemplate<String , TicketDTO> kafkaBookMovieTemplate;
+    private PaymentGatewayFactory paymentGatewayFactory;
 
     @Async
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -54,8 +55,6 @@ public class PaymentService {
             if (paymentSuccess) {
                 try {
                     TicketDTO ticket = createBookingAndGetTicket(request, holdId);
-                    kafkaBookMovieTemplate.send("book_movie", holdId , ticket);
-                    log.info("Produced message: {}", ticket);
                     log.info("Ticket generated successfully: {}", ticket);
                 } catch (Exception e) {
                     log.error("Failed to create booking: {}", e.getMessage());
@@ -80,9 +79,8 @@ public class PaymentService {
 
         // Validate the hold is still valid
         if (!seatHoldService.validateHold(request.getShowId(), holdId, request.getSeatIds())) {
-            // Check if seats are still available and not booked
             if (seatHoldService.areSeatsAvailable(request.getShowId(), request.getSeatIds())) {
-                log.info("Hold expired but seats are still available, creating new hold");
+                log.info("Seats are still available, attempting to rebook with new hold");
                 // Try to get a new hold
                 String newHoldId = seatHoldService.holdSeats(request.getShowId(), request.getSeatIds());
                 if (newHoldId != null) {
@@ -90,10 +88,8 @@ public class PaymentService {
                     return createBookingAndGetTicket(request, newHoldId);
                 }
             }
-            // If seats are not available, we need to initiate payment reversal
-            log.error("Seats are no longer available after payment, initiating payment reversal");
             revertPayment(request);
-            throw new IllegalStateException("Seats are no longer available after payment");
+            throw new IllegalStateException("Seats are no longer available");
         }
 
         // Create permanent booking
@@ -152,40 +148,17 @@ public class PaymentService {
 
     private boolean processPaymentWithGateway(BookingRequest request) throws InterruptedException {
         log.info("Processing payment for request: {}", request);
-        // Implement actual payment gateway integration here
-        Thread.sleep(10000);
-        boolean success = Math.random() > 0.1; // 90% success rate
-        log.info("Payment processing result: {}", success);
-        return success;
+        PaymentGateway gateway = paymentGatewayFactory.getPaymentGateway(request.getPaymentMethod());
+        return gateway.processPayment(request);
     }
 
     private void revertPayment(BookingRequest request) {
         try {
             log.info("Initiating payment reversal for request: {}", request);
-            // Simulate payment reversal process
-            Thread.sleep(5000); // Simulate API call delay
-            
-            // Simulate different reversal scenarios
-            double random = Math.random();
-            if (random > 0.05) { // 95% success rate for reversal
-                log.info("Payment reversal successful for request: {}", request);
-                // Here you would typically:
-                // 1. Update transaction status in your system
-                // 2. Send notification to user
-                // 3. Update any relevant records
-            } else {
-                log.error("Payment reversal failed for request: {}", request);
-                // Here you would typically:
-                // 1. Log the failure
-                // 2. Trigger manual intervention process
-                // 3. Notify support team
-            }
+            PaymentGateway gateway = paymentGatewayFactory.getPaymentGateway(request.getPaymentMethod());
+            gateway.revertPayment(request);
         } catch (Exception e) {
             log.error("Error during payment reversal: {}", e.getMessage());
-            // Here you would typically:
-            // 1. Log the error
-            // 2. Trigger manual intervention process
-            // 3. Notify support team
         }
     }
 }
