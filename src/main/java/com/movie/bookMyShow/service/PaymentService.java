@@ -13,6 +13,7 @@ import com.movie.bookMyShow.repo.ShowRepo;
 import com.movie.bookMyShow.repo.ShowSeatRepo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -35,6 +36,8 @@ public class PaymentService {
     private ShowSeatRepo showSeatRepo;
     @Autowired
     private BookingRepo bookingRepo;
+    @Autowired
+    private KafkaTemplate<String , TicketDTO> kafkaBookMovieTemplate;
 
     @Async
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -51,6 +54,8 @@ public class PaymentService {
             if (paymentSuccess) {
                 try {
                     TicketDTO ticket = createBookingAndGetTicket(request, holdId);
+                    kafkaBookMovieTemplate.send("book_movie", holdId , ticket);
+                    log.info("Produced message: {}", ticket);
                     log.info("Ticket generated successfully: {}", ticket);
                 } catch (Exception e) {
                     log.error("Failed to create booking: {}", e.getMessage());
