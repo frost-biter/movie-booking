@@ -163,7 +163,6 @@ public class SeatHoldService {
             }
         }
     }
-
     private String generateKey(Long showId, Long seatId) {
         return String.format("%s%d:%d", HOLD_KEY_PREFIX, showId, seatId);
     }
