@@ -32,7 +32,7 @@ A Spring Boot-based movie ticket booking system that allows users to browse movi
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/bookMyShow.git
+git clone https://github.com/frost-biter/movie-booking.git
 cd bookMyShow
 ```
 

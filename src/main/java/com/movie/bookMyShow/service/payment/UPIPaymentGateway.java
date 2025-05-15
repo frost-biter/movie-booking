@@ -3,25 +3,31 @@ package com.movie.bookMyShow.service.payment;
 import com.movie.bookMyShow.dto.BookingRequest;
 import com.movie.bookMyShow.enums.PaymentStatus;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+
+import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 @Service
 public class UPIPaymentGateway implements PaymentGateway {
     
     @Override
-    public boolean processPayment(BookingRequest request) {
-        log.info("Processing UPI payment for request: {}", request);
-        try {
-            // Simulate UPI payment processing
-            Thread.sleep(5000);
-            boolean success = Math.random() > 0.1; // 90% success rate
-            log.info("UPI payment result: {}", success);
-            return success;
-        } catch (Exception e) {
-            log.error("Error processing UPI payment: {}", e.getMessage());
-            return false;
-        }
+    @Async
+    public CompletableFuture<Boolean> processPayment(BookingRequest request) {
+        return CompletableFuture.supplyAsync(() -> {
+            log.info("Processing UPI payment for request: {}", request);
+            try {
+                // Simulate UPI payment processing
+                Thread.sleep(5000);
+                boolean success = Math.random() > 0.1; // 90% success rate
+                log.info("UPI payment result: {}", success);
+                return success;
+            } catch (Exception e) {
+                log.error("Error processing UPI payment: {}", e.getMessage());
+                return false;
+            }
+        });
     }
 
     @Override

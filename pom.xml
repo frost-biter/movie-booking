@@ -39,12 +39,18 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-redis</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>org.web3j</groupId>
+			<artifactId>core</artifactId>
+			<version>4.9.8</version>
+		</dependency>
 
 		<dependency>
 			<groupId>io.jsonwebtoken</groupId>
 			<artifactId>jjwt-api</artifactId>
 			<version>0.12.6</version>
 		</dependency>
+
 
 		<dependency>
 			<groupId>io.jsonwebtoken</groupId>
@@ -101,6 +107,18 @@
 		<dependency>
 			<groupId>org.apache.kafka</groupId>
 			<artifactId>kafka-clients</artifactId>
+		</dependency>
+		<!-- Web3j for Ethereum interaction -->
+<!--		<dependency>-->
+<!--			<groupId>org.web3j</groupId>-->
+<!--			<artifactId>core</artifactId>-->
+<!--			<version>4.9.8</version>-->
+<!--		</dependency>-->
+		<!-- BitcoinJ for HD wallet functionality -->
+		<dependency>
+			<groupId>org.bitcoinj</groupId>
+			<artifactId>bitcoinj-core</artifactId>
+			<version>0.16.2</version>
 		</dependency>
 	</dependencies>
 

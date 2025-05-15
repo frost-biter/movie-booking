@@ -9,6 +9,8 @@ import com.movie.bookMyShow.model.Booking;
 import com.movie.bookMyShow.model.Show;
 import com.movie.bookMyShow.repo.BookingRepo;
 import com.movie.bookMyShow.repo.ShowRepo;
+import com.movie.bookMyShow.service.payment.Crypto.CryptoGateway;
+import com.movie.bookMyShow.service.payment.Crypto.CryptoGatewayFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,7 +25,8 @@ public class BookingService {
     private PaymentService paymentService;
     @Autowired
     private BookingRepo bookingRepo;
-
+    @Autowired
+    private CryptoGatewayFactory cryptoGatewayFactory;
     @Transactional
     public ApiResponse initiateBooking(BookingRequest request) {
         // 1. Validate show exists
@@ -34,11 +37,22 @@ public class BookingService {
         if (seatHoldService.areSeatsAvailable(request.getShowId(), request.getSeatIds())) {
             // 3. Create hold in Redis
             String holdId = seatHoldService.holdSeats(request.getShowId(), request.getSeatIds());
-            
-            // 4. Initiate async payment
+
+            // Handle crypto payments differently
+            if ("ETH".equals(request.getPaymentMethod())) {
+                CryptoGateway cryptoGateway = cryptoGatewayFactory.getCryptoGateway(request.getPaymentMethod());
+                String depositAddress = cryptoGateway.generateDepositAddress(holdId);
+                request.setHoldId(holdId);
+                request.setPublicKey(depositAddress);
+                // Start async payment monitoring in background
+                paymentService.processPaymentAsync(holdId, request);
+                
+                // Return deposit address to user
+                return new ApiResponse(1, "Send payment to this ETH address: " + depositAddress+". Hold ID: " + holdId);
+            }
+
+            // For non-crypto payments, proceed with normal flow
             paymentService.processPaymentAsync(holdId, request);
-            
-            // 5. Return response immediately
             return new ApiResponse(202, "Payment process initiated. Seats held for 10 minutes. Hold ID: " + holdId);
         } else {
             throw new SeatAlreadyHeldException("One or more seats are already held or booked");
