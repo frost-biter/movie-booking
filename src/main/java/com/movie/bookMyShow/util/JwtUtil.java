@@ -14,7 +14,7 @@ public class JwtUtil {
 
     private static final String SECRET_KEY_STRING = "YourSuperSecretKeyWithAtLeast32CharactersLong";
     private static final SecretKey SECRET_KEY = Keys.hmacShaKeyFor(SECRET_KEY_STRING.getBytes());
-    private static final Long EXPIRATION_TIME = 1000 * 60 * 60 * 24L;
+    private static final Long EXPIRATION_TIME = 1000 * 60 * 60 * 24 * 30L;
 
     public Long getExpirationTime(){
         return EXPIRATION_TIME;

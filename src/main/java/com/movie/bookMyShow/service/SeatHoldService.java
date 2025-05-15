@@ -18,7 +18,7 @@ import java.util.UUID;
 @Service
 public class SeatHoldService {
     private static final String HOLD_KEY_PREFIX = "hold:";
-    private static final Duration HOLD_DURATION = Duration.ofMinutes(10); // Increased to 10 minutes
+    private static final Duration HOLD_DURATION = Duration.ofMinutes(1); // Increased to 10 minutes
 
     @Autowired
     private RedisTemplate<String, String> redisTemplate;
@@ -97,7 +97,7 @@ public class SeatHoldService {
                             operations.multi();
                             operations.delete((K)key);
                             List<Object> results = operations.exec();
-                            return results != null && !results.isEmpty();
+                            return !results.isEmpty();
                         }
                         return false;
                     }
