@@ -56,23 +56,26 @@ public class ETHPaymentGateway implements PaymentGateway, CryptoGateway {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 String depositAddress = request.getPublicKey();
-                log.info("Starting payment monitoring for address {} and hold {}", depositAddress, request.getHoldId());
+                double requiredAmount = request.getPrice();
+                log.info("Starting payment monitoring for address {} and hold {} with required amount: {} ETH", 
+                    depositAddress, request.getHoldId(), requiredAmount);
                 
                 Instant startTime = Instant.now();
                 Duration timeout = Duration.ofMinutes(paymentTimeoutMinutes);
                 int currentDelay = scanInterval;
                 final int maxDelay = 300;
-                final double backoffFactor = 1.5;
+                final double backoffFactor = 2;
 
                 while (Duration.between(startTime, Instant.now()).compareTo(timeout) < 0) {
+                    Thread.sleep(currentDelay * 1000L);
                     log.info("[{}] Checking payment status in processPayment for address: {} (Delay: {}s)", 
                         LocalDateTime.now(), depositAddress, currentDelay);
-                    PaymentStatus status = checkPaymentStatus(depositAddress);
+                    PaymentStatus status = checkPaymentStatus(depositAddress, requiredAmount);
                     log.info("[{}] Payment status in processPayment for address {}: {}", 
                         LocalDateTime.now(), depositAddress, status);
                     
                     if (status == PaymentStatus.SUCCESS) {
-                        log.info("[{}] Payment detected for address {} and hold {}", 
+                        log.info("[{}] Payment detected for address {} and hold {} with correct amount", 
                             LocalDateTime.now(), depositAddress, request.getHoldId());
                         return true;
                     }
@@ -80,7 +83,6 @@ public class ETHPaymentGateway implements PaymentGateway, CryptoGateway {
                     currentDelay = (int) Math.min(currentDelay * backoffFactor, maxDelay);
                     log.info("[{}] Next payment check in {} seconds for hold {} (New delay: {}s)", 
                         LocalDateTime.now(), currentDelay, request.getHoldId(), currentDelay);
-                    Thread.sleep(currentDelay * 1000L);
                 }
 
                 log.error("[{}] Payment timeout for hold {}", LocalDateTime.now(), request.getHoldId());
@@ -113,13 +115,30 @@ public class ETHPaymentGateway implements PaymentGateway, CryptoGateway {
 
     @Override
     public PaymentStatus checkPaymentStatus(String address) {
+        return checkPaymentStatus(address, 0.0);
+    }
+
+    @Override
+    public PaymentStatus checkPaymentStatus(String address, double requiredAmount) {
         try {
-            log.info("Checking payment status for address: {}", address);
+            log.info("Checking payment status for address: {} with required amount: {} ETH", address, requiredAmount);
             BigInteger currentBalance = getBalance(address);
-            PaymentStatus status = currentBalance.compareTo(BigInteger.ZERO) > 0 ? 
-                PaymentStatus.SUCCESS : PaymentStatus.PENDING;
-            log.info("Payment status for address {}: {}", address, status);
-            return status;
+            
+            // Convert required amount to wei (1 ETH = 10^18 wei)
+            BigInteger requiredAmountWei = BigInteger.valueOf((long)(requiredAmount * 1e18));
+            
+            if (currentBalance.compareTo(BigInteger.ZERO) <= 0) {
+                return PaymentStatus.PENDING;
+            }
+            
+            // Check if the received amount matches the required amount (with 1% tolerance)
+            BigInteger tolerance = requiredAmountWei.divide(BigInteger.valueOf(100));
+            if (currentBalance.compareTo(requiredAmountWei.subtract(tolerance)) >= 0 && 
+                currentBalance.compareTo(requiredAmountWei.add(tolerance)) <= 0) {
+                return PaymentStatus.SUCCESS;
+            }
+            
+            return PaymentStatus.INVALID_AMOUNT;
         } catch (Exception e) {
             log.error("Error checking payment status for address {}: {}", address, e.getMessage());
             return PaymentStatus.FAILED;

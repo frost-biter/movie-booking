@@ -20,6 +20,7 @@ A Spring Boot-based movie ticket booking system that allows users to browse movi
 - **Caching**: Redis
 - **Testing**: JUnit 5, Mockito
 - **Build Tool**: Maven
+- **Blockchain**: Web3j (Ethereum Integration)
 
 ## Prerequisites
 
@@ -28,15 +29,9 @@ A Spring Boot-based movie ticket booking system that allows users to browse movi
 - Redis 6.0 or higher
 - Maven 3.8 or higher
 
-## Installation
+## Configuration
 
-1. Clone the repository:
-```bash
-git clone https://github.com/frost-biter/movie-booking.git
-cd bookMyShow
-```
-
-2. Configure the database:
+### Database Configuration
 - Create a PostgreSQL database named `bookMyShow`
 - Update the database configuration in `application.properties`:
 ```properties
@@ -46,7 +41,7 @@ spring.datasource.password=your_password
 spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
 ```
 
-3. Configure Redis:
+### Redis Configuration
 - Update Redis configuration in `application.properties`:
 ```properties
 spring.data.redis.host=localhost
@@ -54,12 +49,29 @@ spring.data.redis.port=6379
 spring.data.redis.timeout=10000
 ```
 
-4. Build the project:
+### Ethereum Configuration
+Add the following properties to `application.properties`:
+```properties
+ethereum.node.url=YOUR_ETHEREUM_NODE_URL
+ethereum.payment.confirmation.blocks=3
+ethereum.transaction.scan.interval.seconds=30
+ethereum.payment.timeout.minutes=30
+```
+
+## Installation
+
+1. Clone the repository:
+```bash
+git clone https://github.com/frost-biter/movie-booking.git
+cd bookMyShow
+```
+
+2. Build the project:
 ```bash
 mvn clean install
 ```
 
-5. Run the application:
+3. Run the application:
 ```bash
 mvn spring-boot:run
 ```
@@ -87,6 +99,18 @@ src/
 
 ## Key Features Implementation
 
+### Crypto Payment Flow
+1. System uses a Hierarchical Deterministic (HD) wallet structure
+   - All generated addresses are derived from a single parent public key
+   - Each booking gets a unique child address
+2. System generates a unique Ethereum deposit address for each booking
+3. User sends ETH to the provided address
+4. System monitors the address for incoming payments
+5. Payment confirmation is handled asynchronously
+6. System verifies that the received payment amount matches the required ticket amount
+7. Booking is confirmed once payment is detected and amount is verified
+8. System uses exponential backoff for payment status checks
+
 ### Booking Flow
 1. User selects seats for a show
 2. System holds seats temporarily
@@ -106,17 +130,6 @@ src/
   - Show details
   - User sessions
 
-## Testing
-
-Run tests using:
-```bash
-mvn test
-```
-
-The project includes:
-- Unit tests for services
-- Integration tests for controllers
-- Test configuration with H2 database
 
 ## Contributing
 
