@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -43,6 +44,7 @@ public class ShowService {
                 .orElseThrow(() -> new ResourceNotFoundException("Screen not found"));
 
         validateScreenTheatreRelationship(screen, theatre);
+        validateShowTime(request.getStartTime());
 
         Show show = new Show();
         show.setMovie(movie);
@@ -65,6 +67,20 @@ public class ShowService {
             throw new IllegalArgumentException("Invalid show request");
         }
     }
+
+    private void validateShowTime(LocalDateTime startTime) {
+        LocalDateTime now = LocalDateTime.now();
+        if (startTime.isBefore(now)) {
+            throw new IllegalArgumentException("Show time cannot be in the past");
+        }
+        
+        // Allow shows up to 6 months in advance
+        LocalDateTime maxFutureDate = now.plusMonths(6);
+        if (startTime.isAfter(maxFutureDate)) {
+            throw new IllegalArgumentException("Show time cannot be more than 6 months in advance");
+        }
+    }
+
     private void validateScreenTheatreRelationship(Screen screen, Theatre theatre) {
         if (!screen.getTheatre().getTheatreId().equals(theatre.getTheatreId())) {
             throw new IllegalArgumentException(
@@ -85,7 +101,8 @@ public class ShowService {
             theatreDTO.setMovieName(movieRepo.findMovieNameByMovieId(movieId));
 
             List<ShowDTO> showDTOs = theatre.getShowList().stream()
-                    .filter(show -> show.getMovie().getMovieId() == movieId) // Only get shows for the selected movie
+                    .filter(show -> show.getMovie().getMovieId() == movieId && 
+                           show.getStartTime().isAfter(LocalDateTime.now())) // Only get future shows
                     .map(show -> new ShowDTO(Math.toIntExact(show.getShowId()),show.getStartTime(), show.getEndTime()))
                     .collect(Collectors.toList());
 

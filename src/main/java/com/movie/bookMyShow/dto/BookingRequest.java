@@ -17,4 +17,5 @@ public class BookingRequest {
     private String holdId; // For tracking payment status
     private String phoneNumber;
     private String publicKey = null;
+    private double price; // Required amount for payment verification
 }
