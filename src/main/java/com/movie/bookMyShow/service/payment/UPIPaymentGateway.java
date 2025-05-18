@@ -46,15 +46,14 @@ public class UPIPaymentGateway implements PaymentGateway {
     }
 
     @Override
-    public PaymentStatus checkPaymentStatus(String transactionId) {
-        log.info("Checking UPI payment status for transaction: {}", transactionId);
+    public PaymentStatus checkPaymentStatus(String transactionId, double requiredAmount) {
+        log.info("Checking UPI payment status for transaction: {} with amount: {}", transactionId, requiredAmount);
         try {
-            // Simulate status check
+            // Simulate UPI payment status check
             Thread.sleep(1000);
-            double random = Math.random();
-            if (random > 0.7) return PaymentStatus.SUCCESS;
-            if (random > 0.3) return PaymentStatus.PENDING;
-            return PaymentStatus.FAILED;
+            boolean success = Math.random() > 0.1; // 90% success rate
+            log.info("UPI payment status check result: {}", success);
+            return success ? PaymentStatus.SUCCESS : PaymentStatus.FAILED;
         } catch (Exception e) {
             log.error("Error checking UPI payment status: {}", e.getMessage());
             return PaymentStatus.FAILED;
