@@ -15,12 +15,16 @@ public class Seat {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long seatId;
+
+    @Column(name = "row_number")
     private char row;
+
     private Long seatNo;
+
     @ManyToOne
     @JoinColumn(name = "screen_id", nullable = false) // 🔥 Ensure this exists
-    @JsonIgnore
-    private Screen screen;  // 🔥 This must be here
+    private Screen screen;  // �� This must be here
+
     @Enumerated(EnumType.STRING)
     private SeatCategory category;
 }

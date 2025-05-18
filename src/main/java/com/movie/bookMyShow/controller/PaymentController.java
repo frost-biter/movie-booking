@@ -17,10 +17,11 @@ public class PaymentController {
     @GetMapping("/status/{paymentMethod}/{address}")
     public ApiResponse checkPaymentStatus(
             @PathVariable String paymentMethod,
-            @PathVariable String address) {
+            @PathVariable String address,
+            @RequestParam(required = false) Double requiredAmount) {
         try {
             CryptoGateway gateway = cryptoGatewayFactory.getCryptoGateway(paymentMethod);
-            PaymentStatus status = gateway.checkPaymentStatus(address);
+            PaymentStatus status = gateway.checkPaymentStatus(address,requiredAmount);
             
             return new ApiResponse(200, "Payment status: " + status.name());
         } catch (Exception e) {

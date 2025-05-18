@@ -1,5 +1,6 @@
 package com.movie.bookMyShow;
 
+import com.movie.bookMyShow.dto.BookingRequest;
 import com.movie.bookMyShow.model.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,7 +21,7 @@ public abstract class BaseTest {
     protected TestDataHelper testDataHelper;
 
     @BeforeEach
-    void setUp() {
+    protected void setUp() {
         testDataHelper.clearAllData();
     }
 

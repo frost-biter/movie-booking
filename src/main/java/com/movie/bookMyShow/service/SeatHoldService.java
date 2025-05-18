@@ -1,6 +1,8 @@
 package com.movie.bookMyShow.service;
 
 import com.movie.bookMyShow.enums.SeatStatus;
+import com.movie.bookMyShow.exception.SeatAlreadyBookedException;
+import com.movie.bookMyShow.exception.SeatAlreadyHeldException;
 import com.movie.bookMyShow.repo.ShowSeatRepo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,7 +39,7 @@ public class SeatHoldService {
             
             if (Boolean.TRUE.equals(hasKey)) {
                 log.info("Seat {} for show {} is already held", seatId, showId);
-                return false;
+                throw new SeatAlreadyHeldException("Seat " + seatId + " is already held");
             }
         }
 
@@ -45,7 +47,11 @@ public class SeatHoldService {
         boolean isBooked = showSeatRepo.existsByShowIdAndSeatIdInAndStatus(showId, seatIds, SeatStatus.BOOKED);
         log.info("DB check for permanent bookings: {}", isBooked);
         
-        return !isBooked;
+        if (isBooked) {
+            throw new SeatAlreadyBookedException("One or more seats are already booked");
+        }
+        
+        return true;
     }
 
     public String holdSeats(Long showId, List<Long> seatIds) {
@@ -71,7 +77,7 @@ public class SeatHoldService {
                     // If we couldn't acquire all seats, release the ones we did acquire
                     log.info("Failed to acquire seat {} for show {}", seatId, showId);
                     releaseAcquiredSeats(acquiredKeys, holdId);
-                    throw new IllegalStateException("One or more seats are no longer available");
+                    throw new SeatAlreadyHeldException("Seat " + seatId + " is already held");
                 }
             }
             log.info("Successfully acquired all seats for hold {}", holdId);
@@ -79,6 +85,9 @@ public class SeatHoldService {
         } catch (Exception e) {
             // If any error occurs, release all acquired seats
             releaseAcquiredSeats(acquiredKeys, holdId);
+            if (e instanceof SeatAlreadyHeldException) {
+                throw e;
+            }
             throw new RuntimeException("Failed to create seat hold", e);
         }
     }

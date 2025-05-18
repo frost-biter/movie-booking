@@ -103,7 +103,14 @@ public class ShowService {
             List<ShowDTO> showDTOs = theatre.getShowList().stream()
                     .filter(show -> show.getMovie().getMovieId() == movieId && 
                            show.getStartTime().isAfter(LocalDateTime.now())) // Only get future shows
-                    .map(show -> new ShowDTO(Math.toIntExact(show.getShowId()),show.getStartTime(), show.getEndTime()))
+                    .map(show -> new ShowDTO(
+                        show.getShowId(),
+                        Long.valueOf(show.getMovie().getMovieId()),
+                        show.getTheatre().getTheatreId(),
+                        show.getScreen().getScreenId(),
+                        show.getStartTime(),
+                        show.getEndTime()
+                    ))
                     .collect(Collectors.toList());
 
             theatreDTO.setShows(showDTOs);

@@ -4,6 +4,7 @@ import com.movie.bookMyShow.dto.ApiResponse;
 import com.movie.bookMyShow.dto.BookingRequest;
 import com.movie.bookMyShow.dto.TicketDTO;
 import com.movie.bookMyShow.service.BookingService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,7 +17,7 @@ public class BookingController {
     private BookingService bookingService;
 
     @PostMapping("/seats")
-    public ResponseEntity<ApiResponse> createBooking(@RequestBody BookingRequest request) throws InterruptedException {
+    public ResponseEntity<ApiResponse> createBooking(@Valid @RequestBody BookingRequest request) throws InterruptedException {
         System.out.println("Show ID: " + request.getShowId());
         System.out.println("Seat ID: " + request.getSeatIds().getFirst());
 

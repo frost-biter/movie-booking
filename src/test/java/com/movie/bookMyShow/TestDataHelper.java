@@ -29,20 +29,16 @@ public class TestDataHelper {
     private SeatRepo seatRepo;
 
     @Autowired
-    private ShowSeatRepo showSeatRepo;
-
-    @Autowired
-    private BookingRepo bookingRepo;
+    private CityRepo cityRepo;
 
     @Transactional
     public void clearAllData() {
-        bookingRepo.deleteAll();
-        showSeatRepo.deleteAll();
-        seatRepo.deleteAll();
         showRepo.deleteAll();
+        seatRepo.deleteAll();
         screenRepo.deleteAll();
         theatreRepo.deleteAll();
         movieRepo.deleteAll();
+        cityRepo.deleteAll();
     }
 
     public Movie createMovie(String name, int duration) {
@@ -52,16 +48,24 @@ public class TestDataHelper {
         return movieRepo.save(movie);
     }
 
+    public City createCity(String name) {
+        City city = new City();
+        city.setCityName(name);
+        return cityRepo.save(city);
+    }
+
     public Theatre createTheatre(String name) {
         Theatre theatre = new Theatre();
         theatre.setTheatreName(name);
+        theatre.setAddress("Test Address");
+        theatre.setCity(createCity("Test City"));
         return theatreRepo.save(theatre);
     }
 
-    public Screen createScreen(Theatre theatre, String name) {
+    public Screen createScreen(Theatre theatre, String screenName) {
         Screen screen = new Screen();
-        screen.setScreenName(name);
         screen.setTheatre(theatre);
+        screen.setScreenName(screenName);
         return screenRepo.save(screen);
     }
 
@@ -76,11 +80,11 @@ public class TestDataHelper {
 
     public List<Seat> createSeats(Screen screen, int count) {
         List<Seat> seats = new ArrayList<>();
-        for (int i = 0; i < count; i++) {
+        for (int i = 1; i <= count; i++) {
             Seat seat = new Seat();
             seat.setScreen(screen);
             seat.setRow('A');
-            seat.setSeatNo((long) (i + 1));
+            seat.setSeatNo((long) i);
             seats.add(seatRepo.save(seat));
         }
         return seats;

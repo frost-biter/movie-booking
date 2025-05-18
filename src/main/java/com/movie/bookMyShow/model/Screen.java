@@ -19,6 +19,8 @@ public class Screen {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long screenId;
 
+    private String screenName;
+
     @OneToMany(mappedBy = "screen", cascade = CascadeType.ALL)
     @JsonIgnore
     private List<Seat> seats = new ArrayList<>(); // One screen has many seats

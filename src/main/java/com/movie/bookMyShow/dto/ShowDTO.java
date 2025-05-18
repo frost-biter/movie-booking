@@ -7,7 +7,10 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Data
 public class ShowDTO {
-    private int showId;
+    private Long showId;
+    private Long movieId;
+    private Long theatreId;
+    private Long screenId;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
 }

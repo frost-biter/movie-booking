@@ -7,5 +7,5 @@ import java.util.concurrent.CompletableFuture;
 public interface PaymentGateway {
     CompletableFuture<Boolean> processPayment(BookingRequest request);
     boolean revertPayment(BookingRequest request);
-    PaymentStatus checkPaymentStatus(String transactionId);
+    PaymentStatus checkPaymentStatus(String transactionId, double requiredAmount);
 } 

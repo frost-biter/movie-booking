@@ -1,5 +1,6 @@
 package com.movie.bookMyShow.model;
 
+import com.movie.bookMyShow.enums.BookingStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -35,4 +36,7 @@ public class Booking {
     private String phoneNumber; // User can enter their phone number for tracking
 
     private LocalDateTime bookingTime;
+
+    @Enumerated(EnumType.STRING)
+    private BookingStatus status = BookingStatus.PENDING;
 }

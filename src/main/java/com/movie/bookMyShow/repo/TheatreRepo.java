@@ -1,5 +1,6 @@
 package com.movie.bookMyShow.repo;
 
+import com.movie.bookMyShow.model.City;
 import com.movie.bookMyShow.model.Theatre;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -14,6 +15,8 @@ public interface TheatreRepo extends JpaRepository<Theatre,Long> {
     List<Theatre> findByCityAndMovie(@Param("cityId") Integer cityId, @Param("movieId") Integer movieId);
 
     boolean existsByTheatreName(String theatreName);
+
+    List<Theatre> findByCity(City city);
 
 //    List<Theatre> findByCity_CityIdAndShowList_Movie_MovieId(Integer cityId, Integer movieId);
 
