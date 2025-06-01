@@ -5,7 +5,6 @@ import com.movie.bookMyShow.service.payment.Crypto.EthereumAddressService;
 import com.movie.bookMyShow.service.payment.PaymentGateway;
 import com.movie.bookMyShow.service.payment.PaymentGatewayFactory;
 import com.movie.bookMyShow.service.payment.UPIPaymentGateway;
-import org.mockito.Mockito;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
@@ -15,7 +14,6 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.methods.response.EthGetBalance;
 

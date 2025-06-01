@@ -1,20 +1,10 @@
 package com.movie.bookMyShow.util;
 
-import org.bitcoinj.core.Base58;
-import org.bitcoinj.core.ECKey;
 import org.bitcoinj.params.MainNetParams;
-import org.bitcoinj.params.TestNet3Params;
-import org.web3j.crypto.Bip32ECKeyPair;
-import org.web3j.crypto.ECKeyPair;
-import org.web3j.crypto.Hash;
 import org.web3j.crypto.Keys;
 import org.bitcoinj.crypto.HDKeyDerivation;
-import org.bitcoinj.crypto.ChildNumber;
 import org.bitcoinj.crypto.DeterministicKey;
-import org.web3j.utils.Numeric;
-
 import java.math.BigInteger;
-import java.util.Arrays;
 
 
 public class AddressUtil {

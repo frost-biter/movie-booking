@@ -1,11 +1,11 @@
 package com.movie.bookMyShow.service;
 
 import com.movie.bookMyShow.dto.BookingRequest;
+import com.movie.bookMyShow.dto.SeatDTO;
 import com.movie.bookMyShow.dto.TicketDTO;
 import com.movie.bookMyShow.enums.BookingStatus;
 import com.movie.bookMyShow.enums.PaymentStatus;
 import com.movie.bookMyShow.enums.SeatStatus;
-import com.movie.bookMyShow.exception.ResourceNotFoundException;
 import com.movie.bookMyShow.exception.PaymentProcessingException;
 import com.movie.bookMyShow.exception.SeatHoldException;
 import com.movie.bookMyShow.model.Booking;
@@ -27,7 +27,6 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -280,7 +279,7 @@ public class PaymentService {
             booking.setBookingTime(LocalDateTime.now());
             booking.setStatus(BookingStatus.CONFIRMED);
 
-            Booking savedBooking = bookingRepo.save(booking);
+            bookingRepo.save(booking);
             log.info("Successfully created booking for holdId: {}", holdId);
 
             // Release the hold since booking is successful
@@ -291,7 +290,9 @@ public class PaymentService {
                     show.getMovie().getMovieName(),
                     show.getTheatre().getTheatreName(),
                     show.getStartTime(),
-                    seats,
+                    seats.stream()
+                        .map(SeatDTO::fromSeat)
+                        .collect(Collectors.toList()),
                     request.getPhoneNumber(),
                     LocalDateTime.now()
             );

@@ -1,7 +1,7 @@
 package com.movie.bookMyShow.controller;
 
-import com.movie.bookMyShow.dto.ApiResponse;
 import com.movie.bookMyShow.dto.BookingRequest;
+import com.movie.bookMyShow.dto.BookingResponse;
 import com.movie.bookMyShow.dto.TicketDTO;
 import com.movie.bookMyShow.service.BookingService;
 import jakarta.validation.Valid;
@@ -17,11 +17,11 @@ public class BookingController {
     private BookingService bookingService;
 
     @PostMapping("/seats")
-    public ResponseEntity<ApiResponse> createBooking(@Valid @RequestBody BookingRequest request) throws InterruptedException {
+    public ResponseEntity<BookingResponse> createBooking(@Valid @RequestBody BookingRequest request) throws InterruptedException {
         System.out.println("Show ID: " + request.getShowId());
         System.out.println("Seat ID: " + request.getSeatIds().getFirst());
 
-        ApiResponse response = bookingService.initiateBooking(request);
+        BookingResponse response = bookingService.initiateBooking(request);
 
         return ResponseEntity.ok(response);
     }

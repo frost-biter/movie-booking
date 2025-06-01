@@ -2,6 +2,7 @@ package com.movie.bookMyShow.service;
 
 import com.movie.bookMyShow.dto.ApiResponse;
 import com.movie.bookMyShow.dto.BookingRequest;
+import com.movie.bookMyShow.dto.BookingResponse;
 import com.movie.bookMyShow.dto.TicketDTO;
 import com.movie.bookMyShow.exception.ResourceNotFoundException;
 import com.movie.bookMyShow.exception.SeatAlreadyHeldException;
@@ -88,7 +89,7 @@ class BookingServiceTest {
         when(cryptoGateway.generateDepositAddress(any())).thenReturn("0x123");
 
         // Act
-        ApiResponse response = bookingService.initiateBooking(testRequest);
+        BookingResponse response = bookingService.initiateBooking(testRequest);
 
         // Assert
         assertNotNull(response);
@@ -108,7 +109,7 @@ class BookingServiceTest {
         when(seatHoldService.holdSeats(any(), any())).thenReturn("test-hold-id");
 
         // Act
-        ApiResponse response = bookingService.initiateBooking(testRequest);
+        BookingResponse response = bookingService.initiateBooking(testRequest);
 
         // Assert
         assertNotNull(response);

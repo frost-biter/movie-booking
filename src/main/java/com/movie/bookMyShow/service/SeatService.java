@@ -1,17 +1,11 @@
 package com.movie.bookMyShow.service;
 
 import com.movie.bookMyShow.dto.ApiResponse;
-import com.movie.bookMyShow.enums.SeatCategory;
-import com.movie.bookMyShow.model.Screen;
 import com.movie.bookMyShow.model.Seat;
-import com.movie.bookMyShow.model.Show;
 import com.movie.bookMyShow.repo.SeatRepo;
-import com.movie.bookMyShow.repo.ShowRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-
-import java.util.*;
 
 @Service
 public class SeatService {

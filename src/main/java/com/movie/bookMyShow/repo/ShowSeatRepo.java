@@ -1,17 +1,13 @@
 package com.movie.bookMyShow.repo;
 
-import com.movie.bookMyShow.model.Screen;
 import com.movie.bookMyShow.model.ShowSeat;
-import com.movie.bookMyShow.model.Show;
 import com.movie.bookMyShow.model.Seat;
 import com.movie.bookMyShow.enums.SeatStatus;
-import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 public interface ShowSeatRepo extends JpaRepository<ShowSeat, Long>{

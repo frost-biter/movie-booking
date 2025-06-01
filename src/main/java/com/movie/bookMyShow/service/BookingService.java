@@ -1,8 +1,6 @@
 package com.movie.bookMyShow.service;
 
-import com.movie.bookMyShow.dto.ApiResponse;
-import com.movie.bookMyShow.dto.BookingRequest;
-import com.movie.bookMyShow.dto.TicketDTO;
+import com.movie.bookMyShow.dto.*;
 import com.movie.bookMyShow.exception.ResourceNotFoundException;
 import com.movie.bookMyShow.exception.SeatAlreadyHeldException;
 import com.movie.bookMyShow.model.Booking;
@@ -36,7 +34,7 @@ public class BookingService {
     private CryptoGatewayFactory cryptoGatewayFactory;
 
     @Transactional
-    public ApiResponse initiateBooking(BookingRequest request) {
+    public BookingResponse initiateBooking(BookingRequest request) {
         // 1. Validate show exists
         Show show = showRepo.findById(request.getShowId())
                 .orElseThrow(() -> new ResourceNotFoundException("Show not found"));
@@ -55,25 +53,19 @@ public class BookingService {
             // Calculate and set price
             double price = calculatePrice(request.getSeatIds(), request.getPaymentMethod());
             request.setPrice(price);
-
+            request.setHoldId(holdId);
             // Handle crypto payments differently
+            String depositAddress = null;
             if ("ETH".equals(request.getPaymentMethod())) {
                 CryptoGateway cryptoGateway = cryptoGatewayFactory.getCryptoGateway(request.getPaymentMethod());
-                String depositAddress = cryptoGateway.generateDepositAddress(holdId);
-                request.setHoldId(holdId);
+                depositAddress = cryptoGateway.generateDepositAddress(holdId);
                 request.setPublicKey(depositAddress);
-                // Start async payment monitoring in background
-                paymentService.processPaymentAsync(holdId, request, show, seats);
-                
-                // Return deposit address to user
-                return new ApiResponse(1, "Send payment to this ETH address: " + depositAddress + 
-                    ". Hold ID: " + holdId + 
-                    ". Required amount: " + price + " ETH");
             }
-
-            // For non-crypto payments, proceed with normal flow
             paymentService.processPaymentAsync(holdId, request, show, seats);
-            return new ApiResponse(202, "Payment process initiated. Seats held for 5 minutes. Hold ID: " + holdId);
+            if( depositAddress == null) {
+                depositAddress = holdId; // For non-crypto payments
+            }
+            return new BookingResponse( "Payment Process Initiated and seat held for 5mins", holdId, depositAddress,request.getPaymentMethod(), price);
         } else {
             throw new SeatAlreadyHeldException("Seats are not available");
         }
@@ -91,12 +83,16 @@ public class BookingService {
         Booking booking = bookingRepo.findByHoldId(holdId)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found for hold ID: " + holdId));
         
+        List<SeatDTO> seatDTOs = booking.getSeats().stream()
+                .map(SeatDTO::fromSeat)
+                .toList();
+        
         return new TicketDTO(
                 booking.getShow().getShowId(),
                 booking.getShow().getMovie().getMovieName(),
                 booking.getShow().getTheatre().getTheatreName(),
                 booking.getShow().getStartTime(),
-                booking.getSeats(),
+                seatDTOs,
                 booking.getPhoneNumber(),
                 booking.getBookingTime()
         );

@@ -2,6 +2,7 @@ package com.movie.bookMyShow.config;
 
 import com.movie.bookMyShow.util.AdminJwtFilter;
 import com.movie.bookMyShow.util.CityJwtFilter;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -10,6 +11,9 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -19,48 +23,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-
-//@Configuration
-//public class SecurityConfig {
-//
-//    private final JwtFilter jwtFilter;
-//
-//    public SecurityConfig(JwtFilter jwtFilter) {
-//        this.jwtFilter = jwtFilter;
-//    }
-//
-//    @Bean
-//    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-//        http
-//                .csrf(AbstractHttpConfigurer::disable)
-//                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-//                .authorizeHttpRequests(auth -> auth
-//                        .requestMatchers("/city/set", "/city/get").permitAll() // ✅ Allow public access
-//                        .requestMatchers("/admin/**").authenticated() // 🔒 Require authentication for admin APIs
-//                        .anyRequest().authenticated()
-//                )
-//                .httpBasic(Customizer.withDefaults()) // ✅ Enable Basic Authentication for username-password login
-//                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
-//                .addFilterBefore(new RequestLoggingFilter(), UsernamePasswordAuthenticationFilter.class);
-//
-//
-//        return http.build();
-//    }
-//
-//
-//
-//    // ✅ Custom Filter to Log Requests
-//    public static class RequestLoggingFilter extends OncePerRequestFilter {
-//        @Override
-//        protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-//                throws ServletException, IOException {
-//            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-//            System.out.println("🔍 Request: " + request.getMethod() + " " + request.getRequestURL());
-//            System.out.println("🔍 Authenticated? " + (authentication != null));
-//            filterChain.doFilter(request, response);
-//        }
-//    }
-//}
+import java.util.Arrays;
+import java.util.Collections;
 
 @Configuration
 public class SecurityConfig {
@@ -76,13 +40,14 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/city/**").permitAll() // Public access
+                        .requestMatchers("/city/**").permitAll()
                         .requestMatchers("/admin/register", "/admin/login").permitAll()
                         .requestMatchers("/admin/update/**").hasRole("ADMIN")
-                        .anyRequest().authenticated() // All other endpoints need JWT
+                        .anyRequest().authenticated()
                 )
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .addFilterBefore(adminJwtFilter, UsernamePasswordAuthenticationFilter.class)
@@ -90,12 +55,29 @@ public class SecurityConfig {
 
         return http.build();
     }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowCredentials(true);
+        config.setAllowedOriginPatterns(Collections.singletonList("http://localhost:3000"));
+        config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(Collections.singletonList("*"));
+        config.setExposedHeaders(Arrays.asList("Authorization", "Content-Type"));
+        config.setMaxAge(3600L);
+        
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
+    }
+
     public static class RequestLoggingFilter extends OncePerRequestFilter {
         @Override
-        protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+        protected void doFilterInternal(HttpServletRequest request, @NotNull HttpServletResponse response, FilterChain filterChain)
                 throws ServletException, IOException {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            System.out.println("🔍 Request: " + request.getMethod() + " " + request.getRequestURL());
+            System.out.println(" Request: " + request.getMethod() + " " + request.getRequestURL());
+            System.out.println(" Authenticated? " + (authentication != null));
             System.out.println("🔍 Authenticated? " + (authentication != null));
             filterChain.doFilter(request, response);
         }

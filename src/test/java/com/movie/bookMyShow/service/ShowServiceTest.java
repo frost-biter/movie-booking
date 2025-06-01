@@ -1,7 +1,6 @@
 package com.movie.bookMyShow.service;
 
 import com.movie.bookMyShow.dto.ApiResponse;
-import com.movie.bookMyShow.dto.ShowDTO;
 import com.movie.bookMyShow.dto.ShowRequest;
 import com.movie.bookMyShow.dto.TheatreDTO;
 import com.movie.bookMyShow.exception.ResourceNotFoundException;
