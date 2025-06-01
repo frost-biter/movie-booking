@@ -14,5 +14,14 @@ public class SeatDTO {
     private Long seatNo;
     private SeatCategory category;
     private String seatIdentifier; // Combines row and seat number for easy display
-    private boolean isAvailable;
+
+    public static SeatDTO fromSeat(com.movie.bookMyShow.model.Seat seat) {
+        return new SeatDTO(
+            seat.getSeatId(),
+            seat.getRow(),
+            seat.getSeatNo(),
+            seat.getCategory(),
+            seat.getRow() + String.valueOf(seat.getSeatNo())
+        );
+    }
 } 

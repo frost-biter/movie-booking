@@ -2,7 +2,6 @@ package com.movie.bookMyShow.controller;
 
 import com.movie.bookMyShow.dto.SeatDTO;
 import com.movie.bookMyShow.dto.TheatreDTO;
-import com.movie.bookMyShow.service.SeatService;
 import com.movie.bookMyShow.service.ShowSeatService;
 import com.movie.bookMyShow.service.ShowService;
 import org.springframework.beans.factory.annotation.Autowired;

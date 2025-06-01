@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.movie.bookMyShow.config.BaseControllerTestConfig;
 import com.movie.bookMyShow.dto.ApiResponse;
 import com.movie.bookMyShow.dto.BookingRequest;
+import com.movie.bookMyShow.dto.BookingResponse;
 import com.movie.bookMyShow.dto.TicketDTO;
 import com.movie.bookMyShow.exception.ResourceNotFoundException;
 import com.movie.bookMyShow.model.Seat;
@@ -39,7 +40,7 @@ class BookingControllerTest {
     private BookingService bookingService;
 
     private BookingRequest testRequest;
-    private ApiResponse testResponse;
+    private BookingResponse testResponse;
     private TicketDTO testTicket;
 
     @BeforeEach
@@ -53,7 +54,7 @@ class BookingControllerTest {
         testRequest.setPrice(400.0);
 
         // Setup test response
-        testResponse = new ApiResponse(1, "Send payment to this ETH address: 0x123. Hold ID: test-hold-id. Required amount: 400.0 ETH");
+        testResponse = new BookingResponse("Send payment to this ETH address",": 0x123." ,"Hold ID: test-hold-id.",null, 400.0);
 
         // Setup test ticket
         testTicket = new TicketDTO();

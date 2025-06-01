@@ -1,14 +1,11 @@
 package com.movie.bookMyShow.service;
 
 import com.movie.bookMyShow.config.TestConfig;
-import com.movie.bookMyShow.model.Seat;
 import com.movie.bookMyShow.model.Show;
-import com.movie.bookMyShow.model.ShowSeat;
 import com.movie.bookMyShow.repo.ShowRepo;
 import com.movie.bookMyShow.repo.ShowSeatRepo;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;

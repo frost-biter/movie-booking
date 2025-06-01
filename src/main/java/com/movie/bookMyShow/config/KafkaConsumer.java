@@ -36,8 +36,9 @@ public class KafkaConsumer {
 
         props.put(ErrorHandlingDeserializer.KEY_DESERIALIZER_CLASS, StringDeserializer.class);
         props.put(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, JsonDeserializer.class);
-        props.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
+        props.put(JsonDeserializer.TRUSTED_PACKAGES, "com.movie.bookMyShow.dto");
         props.put(JsonDeserializer.VALUE_DEFAULT_TYPE, "com.movie.bookMyShow.dto.TicketDTO");
+        props.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, true);
 
         return new DefaultKafkaConsumerFactory<>(props);
     }

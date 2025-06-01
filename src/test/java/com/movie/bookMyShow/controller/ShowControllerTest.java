@@ -2,6 +2,7 @@ package com.movie.bookMyShow.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.movie.bookMyShow.config.BaseControllerTestConfig;
+import com.movie.bookMyShow.dto.SeatDTO;
 import com.movie.bookMyShow.dto.ShowDTO;
 import com.movie.bookMyShow.dto.TheatreDTO;
 import com.movie.bookMyShow.model.Seat;
@@ -30,9 +31,6 @@ class ShowControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
-
-    @Autowired
-    private ObjectMapper objectMapper;
 
     @MockBean
     private ShowService showService;

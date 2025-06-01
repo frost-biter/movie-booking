@@ -1,6 +1,5 @@
 package com.movie.bookMyShow.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.movie.bookMyShow.enums.SeatCategory;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;

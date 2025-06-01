@@ -2,7 +2,6 @@ package com.movie.bookMyShow.service;
 
 import com.movie.bookMyShow.dto.SeatDTO;
 import com.movie.bookMyShow.exception.ResourceNotFoundException;
-import com.movie.bookMyShow.model.Screen;
 import com.movie.bookMyShow.model.Seat;
 import com.movie.bookMyShow.model.Show;
 import com.movie.bookMyShow.repo.ShowRepo;
@@ -33,8 +32,7 @@ public class ShowSeatService {
                     seat.getRow(),
                     seat.getSeatNo(),
                     seat.getCategory(),
-                    seat.getRow() + String.valueOf(seat.getSeatNo()),
-                    true // Since these are available seats
+                    seat.getRow() + String.valueOf(seat.getSeatNo())
                 ))
                 .collect(Collectors.toList());
     }

@@ -1,6 +1,5 @@
 package com.movie.bookMyShow.controller;
 
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController

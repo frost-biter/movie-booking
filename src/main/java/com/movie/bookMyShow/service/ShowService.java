@@ -12,7 +12,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -91,31 +93,45 @@ public class ShowService {
     }
 
     public List<TheatreDTO> getTheatresWithShows(int movieId, Integer cityId) {
+        // First verify movie exists
+        String movieName = movieRepo.findMovieNameByMovieId(movieId);
+        if (movieName == null) {
+            throw new ResourceNotFoundException("Movie not found with id: " + movieId);
+        }
+
         List<Theatre> theatres = theatreRepo.findByCityAndMovie(cityId, movieId);
+        if (theatres.isEmpty()) {
+            throw new ResourceNotFoundException("No theatres found showing this movie in the specified city");
+        }
 
-        return theatres.stream().map(theatre -> {
-            TheatreDTO theatreDTO = new TheatreDTO();
-            theatreDTO.setTheatreId(theatre.getTheatreId());
-            theatreDTO.setTheatreName(theatre.getTheatreName());
-            theatreDTO.setAddress(theatre.getAddress());
-            theatreDTO.setMovieName(movieRepo.findMovieNameByMovieId(movieId));
+        return theatres.stream()
+            .filter(Objects::nonNull)
+            .filter(theatre -> theatre.getShowList() != null)
+            .map(theatre -> {
+                TheatreDTO theatreDTO = new TheatreDTO();
+                theatreDTO.setTheatreId(theatre.getTheatreId());
+                theatreDTO.setTheatreName(theatre.getTheatreName());
+                theatreDTO.setAddress(theatre.getAddress());
+                theatreDTO.setMovieName(movieName);
 
-            List<ShowDTO> showDTOs = theatre.getShowList().stream()
-                    .filter(show -> show.getMovie().getMovieId() == movieId && 
-                           show.getStartTime().isAfter(LocalDateTime.now())) // Only get future shows
+                List<ShowDTO> showDTOs = theatre.getShowList().stream()
+                    .filter(Objects::nonNull)
                     .map(show -> new ShowDTO(
                         show.getShowId(),
-                        Long.valueOf(show.getMovie().getMovieId()),
+                        show.getMovie() != null ? Long.valueOf(show.getMovie().getMovieId()) : null,
                         show.getTheatre().getTheatreId(),
                         show.getScreen().getScreenId(),
                         show.getStartTime(),
                         show.getEndTime()
                     ))
+                    .sorted(Comparator.comparing(ShowDTO::getStartTime)) // Sort shows by start time
                     .collect(Collectors.toList());
 
-            theatreDTO.setShows(showDTOs);
-            return theatreDTO;
-        }).collect(Collectors.toList());
+                theatreDTO.setShows(showDTOs);
+                return theatreDTO;
+            })
+            .filter(theatreDTO -> !theatreDTO.getShows().isEmpty()) // Only include theatres with shows
+            .collect(Collectors.toList());
     }
 
 }

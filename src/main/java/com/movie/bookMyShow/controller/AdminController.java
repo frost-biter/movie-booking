@@ -6,13 +6,14 @@ import com.movie.bookMyShow.dto.ShowRequest;
 import com.movie.bookMyShow.model.*;
 import com.movie.bookMyShow.service.*;
 import com.movie.bookMyShow.util.JwtUtil;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -84,7 +85,7 @@ public class AdminController {
     private BCryptPasswordEncoder passwordEncoder;
     AdminController (JwtUtil jwtUtil) {this.jwtUtil = jwtUtil;}
     @PostMapping("/login")
-    public ResponseEntity<Map<String, String>> login(@RequestBody CredentialsRequest request) {
+    public ResponseEntity<?> login(@RequestBody CredentialsRequest request , HttpServletResponse response) {
         String username = request.getUsername();
         // 1. Validate credentials
         Admin admin = adminService.findByUsername(username);
@@ -94,6 +95,17 @@ public class AdminController {
         String role = admin.getRole(); // fetch role from DB
         String token = jwtUtil.generateAdminToken(username, role);
 
-        return ResponseEntity.ok(Map.of("token", token));
+        Cookie cookie = new Cookie("token", token);
+        cookie.setHttpOnly(true);
+        cookie.setSecure(true); // only over HTTPS
+        cookie.setPath("/");
+        cookie.setMaxAge(7 * 24 * 60 * 60); // 7 days
+        // For development with localhost
+        cookie.setAttribute("SameSite", "Lax");
+        // If you deploy to production with a domain, uncomment and set your domain
+        // cookie.setDomain("yourdomain.com");
+
+        response.addCookie(cookie);
+        return ResponseEntity.ok("Login successful");
     }
 }

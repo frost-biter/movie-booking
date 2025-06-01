@@ -50,8 +50,8 @@ public class UPIPaymentGateway implements PaymentGateway {
         log.info("Checking UPI payment status for transaction: {} with amount: {}", transactionId, requiredAmount);
         try {
             // Simulate UPI payment status check
-            Thread.sleep(1000);
-            boolean success = Math.random() > 0.1; // 90% success rate
+            Thread.sleep(12000);
+            boolean success = Math.random() > 0.001; // 90% success rate
             log.info("UPI payment status check result: {}", success);
             return success ? PaymentStatus.SUCCESS : PaymentStatus.FAILED;
         } catch (Exception e) {

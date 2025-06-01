@@ -74,12 +74,12 @@ public class JwtUtil {
         return (String) extractAllClaims(token).get("role");
     }
 
-    public boolean validateToken(String token, String expectedUsername) {
-        try {
-            String username = extractAdminUsername(token);
-            return username.equals(expectedUsername);
-        } catch (SecurityException | IllegalArgumentException e) {
-            return false;
-        }
-    }
+//    public boolean validateToken(String token, String expectedUsername) {
+//        try {
+//            String username = extractAdminUsername(token);
+//            return username.equals(expectedUsername);
+//        } catch (SecurityException | IllegalArgumentException e) {
+//            return false;
+//        }
+//    }
 }
