@@ -65,7 +65,7 @@ public class BookingService {
             if( depositAddress == null) {
                 depositAddress = holdId; // For non-crypto payments
             }
-            return new BookingResponse( "Payment Process Initiated and seat held for 5mins", holdId, depositAddress,request.getPaymentMethod(), price);
+            return new BookingResponse("Payment Process Initiated and seat held for 5mins", holdId, depositAddress, request.getPaymentMethod(), price);
         } else {
             throw new SeatAlreadyHeldException("Seats are not available");
         }

@@ -13,4 +13,5 @@ public class BookingResponse {
     private String paymentAddress = null;
     private String paymentMethod = null;
     private Double price = null;
+    
 } 

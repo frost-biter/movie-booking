@@ -130,7 +130,9 @@ const HomePage = ({ city, onCityChange }) => {
     }
     
     // Navigate directly to the shows page for this movie
-    navigate(`/shows/movie-id-${movie.movieId}`);
+    console.log("Naviagating to movie page for movieId:", movie.movieId);
+
+    navigate(`/shows/movie/${movie.movieId}`);
   };
 
   // Get unique languages and genres for filters

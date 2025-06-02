@@ -19,7 +19,7 @@ public class BookingController {
     @PostMapping("/seats")
     public ResponseEntity<BookingResponse> createBooking(@Valid @RequestBody BookingRequest request) throws InterruptedException {
         System.out.println("Show ID: " + request.getShowId());
-        System.out.println("Seat ID: " + request.getSeatIds().getFirst());
+//        System.out.println("Seat ID: " + request.getSeatIds().getFirst());
 
         BookingResponse response = bookingService.initiateBooking(request);
 
