@@ -5,7 +5,7 @@ import { FaMapMarkerAlt, FaFilm, FaClock } from 'react-icons/fa';
 import showService from '../../services/showService';
 
 const MovieShowsPage = () => {
-  const { id } = useParams();
+  const { movieId } = useParams();
   const navigate = useNavigate();
   const [theatres, setTheatres] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -27,7 +27,7 @@ const MovieShowsPage = () => {
         setError('');
         
         // Extract movie ID from the URL format 'movie-id-{id}'
-        const movieId = id.startsWith('movie-id-') ? id.substring(9) : id;
+
         console.log('Fetching shows for movie ID:', movieId);
         
         const theatresData = await showService.getShowsByMovie(movieId);
@@ -88,10 +88,10 @@ const MovieShowsPage = () => {
       }
     };
 
-    if (id) {
+    if (movieId) {
       fetchShows();
     }
-  }, [id]);
+  }, [movieId]);
 
   const handleTimeSelect = (show) => {
     navigate(`/shows/show/${show.id}`);

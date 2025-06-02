@@ -16,7 +16,8 @@ import MovieListPage from './pages/user/MovieListPage';
 import MovieDetailPage from './pages/user/MovieDetailPage';
 import MovieShowsPage from './pages/user/MovieShowsPage';
 import ShowSeatsPage from './pages/user/ShowSeatsPage';
-import SeatSelectionPage from './pages/user/SeatSelectionPage';
+import PaymentPage from './pages/user/PaymentPage';
+import BookingConfirmationPage from './pages/user/BookingConfirmationPage';
 import CitySelectionPage from './pages/user/CitySelectionPage';
 
 // Admin Pages
@@ -33,11 +34,11 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 const AdminRoute = ({ children }) => {
   const { isAuthenticated, isAdmin } = useAuth();
   const location = useLocation();
-  
+
   if (!isAuthenticated) {
     return <Navigate to="/admin/login" state={{ from: location }} replace />;
   }
-  
+
   if (!isAdmin) {
     return <Navigate to="/" replace />;
   }
@@ -73,7 +74,10 @@ const AppLayout = () => {
             <Route path="/movies/:id" element={<MovieDetailPage city={selectedCity} />} />
             <Route path="/shows/movie/:movieId" element={<MovieShowsPage city={selectedCity} />} />
             <Route path="/shows/show/:showId" element={<ShowSeatsPage city={selectedCity} />} />
-            <Route path="/book-seats/:showId" element={<SeatSelectionPage />} />
+            <Route path="/book-seats" element={<PaymentPage />} />
+
+            {/* ✅ Add this route for ticket confirmation page */}
+            <Route path="/ticket/:holdId" element={<BookingConfirmationPage />} />
 
             {/* Admin Routes */}
             <Route path="/admin/login" element={<AdminLogin />} />
