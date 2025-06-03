@@ -5,16 +5,17 @@ import com.movie.bookMyShow.dto.BookingResponse;
 import com.movie.bookMyShow.dto.TicketDTO;
 import com.movie.bookMyShow.service.BookingService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/booking")
 public class BookingController {
+    private final BookingService bookingService;
 
-    @Autowired
-    private BookingService bookingService;
+    public BookingController(BookingService bookingService) {
+        this.bookingService = bookingService;
+    }
 
     @PostMapping("/seats")
     public ResponseEntity<BookingResponse> createBooking(@Valid @RequestBody BookingRequest request) throws InterruptedException {

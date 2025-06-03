@@ -391,13 +391,12 @@ const BookingConfirmationPage = () => {
   };
 
   const fetchTicket = async (holdIdToFetch) => {
-    setStatus('Checking payment and booking status...');
-
-    let attempts = 0;
-    const maxAttempts = 10;
-    const pollingInterval = 2000;
+    let isMounted = true;
+    let pollTimeout;
 
     const poll = async () => {
+      if (!isMounted) return;
+      
       try {
         const ticketRes = await fetch(
           `http://localhost:8080/booking/bookings?holdId=${holdIdToFetch}`,
@@ -405,13 +404,8 @@ const BookingConfirmationPage = () => {
         );
 
         if (ticketRes.status === 404) {
-          attempts++;
-          if (attempts < maxAttempts) {
-            setTimeout(poll, pollingInterval);
-          } else {
-            setStatus('Ticket not found after multiple attempts.');
-            setError('Booking timed out. Please try again.');
-          }
+          setStatus('Ticket not found after multiple attempts.');
+          setError('Booking timed out. Please try again.');
           return;
         }
 
@@ -428,22 +422,28 @@ const BookingConfirmationPage = () => {
           setError('');
           return;
         } else {
-          attempts++;
-          if (attempts < maxAttempts) {
-            setTimeout(poll, pollingInterval);
-          } else {
-            setStatus('Payment not received or seats not booked.');
-            setError('Payment failed or timed out. Please try again.');
-          }
+          setStatus('Payment not received or seats not booked.');
+          setError('Payment failed or timed out. Please try again.');
         }
       } catch (err) {
         console.error('Error fetching ticket:', err);
         setError(err.message || 'Error fetching ticket');
         setStatus(null);
       }
+
+      if (isMounted) {
+        pollTimeout = setTimeout(poll, 2000);
+      }
     };
 
     poll();
+
+    return () => {
+      isMounted = false;
+      if (pollTimeout) {
+        clearTimeout(pollTimeout);
+      }
+    };
   };
 
   useEffect(() => {

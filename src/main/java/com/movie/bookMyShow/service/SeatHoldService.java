@@ -5,7 +5,6 @@ import com.movie.bookMyShow.exception.SeatAlreadyBookedException;
 import com.movie.bookMyShow.exception.SeatAlreadyHeldException;
 import com.movie.bookMyShow.repo.ShowSeatRepo;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.SessionCallback;
@@ -20,13 +19,15 @@ import java.util.UUID;
 @Service
 public class SeatHoldService {
     private static final String HOLD_KEY_PREFIX = "hold:";
-    private static final Duration HOLD_DURATION = Duration.ofMinutes(5); // Increased to 10 minutes
+    private static final Duration HOLD_DURATION = Duration.ofMinutes(5);
 
-    @Autowired
-    private RedisTemplate<String, String> redisTemplate;
-    
-    @Autowired
-    private ShowSeatRepo showSeatRepo;
+    private final RedisTemplate<String, String> redisTemplate;
+    private final ShowSeatRepo showSeatRepo;
+
+    public SeatHoldService(RedisTemplate<String, String> redisTemplate, ShowSeatRepo showSeatRepo) {
+        this.redisTemplate = redisTemplate;
+        this.showSeatRepo = showSeatRepo;
+    }
 
     public boolean areSeatsAvailable(Long showId, List<Long> seatIds) {
         log.info("Checking seat availability for show: {} and seats: {}", showId, seatIds);
