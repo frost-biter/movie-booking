@@ -14,24 +14,32 @@ import com.movie.bookMyShow.service.payment.Crypto.CryptoGatewayFactory;
 
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class BookingService {
-    @Autowired
-    private ShowRepo showRepo;
-    @Autowired
-    private SeatRepo seatRepo;
-    @Autowired
-    private SeatHoldService seatHoldService;
-    @Autowired
-    private PaymentService paymentService;
-    @Autowired
-    private BookingRepo bookingRepo;
-    @Autowired
-    private CryptoGatewayFactory cryptoGatewayFactory;
+    private final ShowRepo showRepo;
+    private final SeatRepo seatRepo;
+    private final SeatHoldService seatHoldService;
+    private final PaymentService paymentService;
+    private final BookingRepo bookingRepo;
+    private final CryptoGatewayFactory cryptoGatewayFactory;
+
+    public BookingService(
+            ShowRepo showRepo,
+            SeatRepo seatRepo,
+            SeatHoldService seatHoldService,
+            PaymentService paymentService,
+            BookingRepo bookingRepo,
+            CryptoGatewayFactory cryptoGatewayFactory) {
+        this.showRepo = showRepo;
+        this.seatRepo = seatRepo;
+        this.seatHoldService = seatHoldService;
+        this.paymentService = paymentService;
+        this.bookingRepo = bookingRepo;
+        this.cryptoGatewayFactory = cryptoGatewayFactory;
+    }
 
     @Transactional
     public BookingResponse initiateBooking(BookingRequest request) {

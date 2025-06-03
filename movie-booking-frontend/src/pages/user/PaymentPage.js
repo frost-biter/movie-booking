@@ -29,9 +29,22 @@ const PaymentPage = () => {
 
   // Cleanup intervals on unmount
   useEffect(() => {
+    let isMounted = true;
+    
+    const cleanup = () => {
+        if (countdownInterval.current) {
+            clearInterval(countdownInterval.current);
+            countdownInterval.current = null;
+        }
+        if (paymentPollingInterval.current) {
+            clearInterval(paymentPollingInterval.current);
+            paymentPollingInterval.current = null;
+        }
+    };
+
     return () => {
-      if (countdownInterval.current) clearInterval(countdownInterval.current);
-      if (paymentPollingInterval.current) clearInterval(paymentPollingInterval.current);
+        isMounted = false;
+        cleanup();
     };
   }, []);
 
