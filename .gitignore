@@ -33,9 +33,9 @@ build/
 .vscode/
 
 ### Application Properties ###
-src/main/resources/application.properties
-src/main/resources/application-ethereum.properties
-src/main/resources/application-*.properties
+# src/main/resources/application.properties
+# src/main/resources/application-ethereum.properties
+# src/main/resources/application-*.properties
 
 ### Environment Files ###
 .env
