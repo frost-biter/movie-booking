@@ -31,3 +31,23 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Application Properties ###
+src/main/resources/application.properties
+src/main/resources/application-ethereum.properties
+src/main/resources/application-*.properties
+
+### Environment Files ###
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+### Logs ###
+logs/
+*.log
+
+### OS ###
+.DS_Store
+Thumbs.db

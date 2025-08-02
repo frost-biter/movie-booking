@@ -1,6 +1,6 @@
 # Ethereum Configuration
-ethereum.node.url=https://sepolia.infura.io/v3/58b39db5de374822ab43a0ee7b8eb6dc
-crypto.eth.xpub=xpub6Cpmw6NK4YMcnwTEmPfr8hwUNUCPcmAhiNe72AsCfhqC3v588gSr918qWp9QSkn3bSFnpHBzkVsYeLFW1i8wAEgg8KqKyFCsbmisemdey57
+ethereum.node.url=https://sepolia.infura.io/v3/your_infura_key_here
+crypto.eth.xpub=your_ethereum_public_key_here
 # Payment Settings
 ethereum.payment.timeout.minutes=10
 ethereum.payment.confirmation.blocks=0
@@ -21,4 +21,4 @@ ethereum.max.transaction.value.eth=10
 
 spring.data.redis.host=localhost
 spring.data.redis.port=6379
-spring.data.redis.timeout=10000
+spring.data.redis.timeout=10000 
