@@ -98,10 +98,12 @@ public class AdminController {
         Cookie cookie = new Cookie("token", token);
         cookie.setHttpOnly(true);
         cookie.setSecure(true); // only over HTTPS
+        
         cookie.setPath("/");
         cookie.setMaxAge(7 * 24 * 60 * 60); // 7 days
         // For development with localhost
-        cookie.setAttribute("SameSite", "Lax");
+        cookie.setAttribute("SameSite", "None");
+
         // If you deploy to production with a domain, uncomment and set your domain
         // cookie.setDomain("yourdomain.com");
 

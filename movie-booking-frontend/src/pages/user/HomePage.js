@@ -38,7 +38,6 @@ const HomePage = ({ city, onCityChange }) => {
       // Set city first
       if (city) {
         console.log('Setting city:', city);
-        console.log('API Base URL:', process.env.REACT_APP_API_BASE_URL);
         await cityAPI.setCity(city);
       }
       
