@@ -8,12 +8,13 @@ import javax.crypto.SecretKey;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import org.springframework.beans.factory.annotation.Value;
 
 @Component
 public class JwtUtil {
 
-    private static final String SECRET_KEY_STRING = "YourSuperSecretKeyWithAtLeast32CharactersLong";
-    private static final SecretKey SECRET_KEY = Keys.hmacShaKeyFor(SECRET_KEY_STRING.getBytes());
+    @Value("${jwt.secret}")
+    private String secretKeyString;
     private static final Long EXPIRATION_TIME = 1000 * 60 * 60 * 24 * 30L;
 
     public Long getExpirationTime(){
@@ -21,7 +22,7 @@ public class JwtUtil {
     }
 
     public SecretKey getSigningKey() {
-        return SECRET_KEY;
+        return Keys.hmacShaKeyFor(secretKeyString.getBytes());
     }
     // ✅ Generate Token
     public String generateToken(Long cityId) {

@@ -1,10 +1,10 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8080';
+// const REACT_APP_API_BASE_URL = 'http://localhost:8080'; 
 
 // Create axios instance with default config
 const apiClient = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: 'http://localhost:8080',
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',

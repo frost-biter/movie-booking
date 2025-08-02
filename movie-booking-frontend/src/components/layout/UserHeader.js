@@ -28,7 +28,7 @@ const UserHeader = ({ city, onCityChange }) => {
     
     try {
       console.log('Calling select city API...');
-      await axios.post('/api/cities/select', { city: cityName }, { withCredentials: true });
+      await axios.post(`${process.env.REACT_APP_API_BASE_URL}/api/cities/select`, { city: cityName }, { withCredentials: true });
       
       // Update local state
       setSelectedCity(cityName);

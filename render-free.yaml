@@ -1,0 +1,31 @@
+services:
+  # Backend API Service
+  - type: web
+    name: bookmyshow-backend
+    env: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    region: oregon
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: SPRING_DATASOURCE_URL
+        sync: false
+      - key: SPRING_KAFKA_BOOTSTRAP_SERVERS
+        sync: false
+    healthCheckPath: /actuator/health
+    autoDeploy: true
+
+  # Frontend Service
+  - type: web
+    name: bookmyshow-frontend
+    env: docker
+    dockerfilePath: ./movie-booking-frontend/Dockerfile
+    dockerContext: ./movie-booking-frontend
+    plan: free
+    region: oregon
+    envVars:
+      - key: REACT_APP_API_URL
+        value: https://bookmyshow-backend.onrender.com
+    autoDeploy: true 

@@ -1,0 +1,41 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# IDE
+.idea
+.vscode
+*.iml
+
+# Logs
+logs
+*.log
+
+# Build artifacts
+target/
+build/
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Documentation
+README.md
+HELP.md
+*.md
+
+# Test files
+src/test/
+**/test/
+**/tests/
+
+# Temporary files
+*.tmp
+*.temp 

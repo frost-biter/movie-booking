@@ -3,6 +3,7 @@ package com.movie.bookMyShow.config;
 import com.movie.bookMyShow.util.AdminJwtFilter;
 import com.movie.bookMyShow.util.CityJwtFilter;
 import org.jetbrains.annotations.NotNull;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -32,6 +33,9 @@ public class SecurityConfig {
     private final CityJwtFilter cityJwtFilter;
     private final AdminJwtFilter adminJwtFilter;
 
+    @Value("${app.cors.allowed-origin}")
+    private String allowedOrigin;
+
     public SecurityConfig(CityJwtFilter cityJwtFilter, AdminJwtFilter adminJwtFilter) {
         this.cityJwtFilter = cityJwtFilter;
         this.adminJwtFilter = adminJwtFilter;
@@ -60,7 +64,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true);
-        config.setAllowedOriginPatterns(Collections.singletonList("http://localhost:3000"));
+        config.setAllowedOriginPatterns(Collections.singletonList(allowedOrigin));
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(Collections.singletonList("*"));
         config.setExposedHeaders(Arrays.asList("Authorization", "Content-Type"));

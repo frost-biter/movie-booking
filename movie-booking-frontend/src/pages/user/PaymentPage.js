@@ -141,7 +141,7 @@ const PaymentPage = () => {
 
     try {
       console.log('Initiating booking with payload:', payload);
-      const res = await fetch('http://localhost:8080/booking/seats', {
+      const res = await fetch(`http://localhost:8080/booking/seats`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -179,7 +179,7 @@ const PaymentPage = () => {
     console.log(`Checking payment status for ${paymentMethod}/${address}`);
     try {
       const res = await fetch(
-        `http://localhost:8080/api/payments/status/${paymentMethod}/${address}?requiredAmount=${amount}`,
+        `${process.env.REACT_APP_API_BASE_URL}/api/payments/status/${paymentMethod}/${address}?requiredAmount=${amount}`,
         { credentials: 'include' }
       );
   
@@ -198,12 +198,6 @@ const PaymentPage = () => {
       throw err;
     }
   };
-  
-  
-  
-
-
-  
   
 
   return (

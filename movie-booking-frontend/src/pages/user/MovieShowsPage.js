@@ -26,7 +26,7 @@ const MovieShowsPage = () => {
         setLoading(true);
         setError('');
         
-        // Extract movie ID from the URL format 'movie-id-{id}'
+
 
         console.log('Fetching shows for movie ID:', movieId);
         

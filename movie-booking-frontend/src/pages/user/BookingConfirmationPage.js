@@ -391,21 +391,28 @@ const BookingConfirmationPage = () => {
   };
 
   const fetchTicket = async (holdIdToFetch) => {
-    let isMounted = true;
-    let pollTimeout;
+    setStatus('Checking payment and booking status...');
+
+    let attempts = 0;
+    const maxAttempts = 10;
+    const pollingInterval = 2000; // 2 seconds
 
     const poll = async () => {
-      if (!isMounted) return;
-      
       try {
         const ticketRes = await fetch(
-          `http://localhost:8080/booking/bookings?holdId=${holdIdToFetch}`,
+          `${process.env.REACT_APP_API_BASE_URL}/booking/bookings?holdId=${holdIdToFetch}`,
           { credentials: 'include' }
         );
 
         if (ticketRes.status === 404) {
-          setStatus('Ticket not found after multiple attempts.');
-          setError('Booking timed out. Please try again.');
+          // Ticket not ready yet – retry
+          attempts++;
+          if (attempts < maxAttempts) {
+            setTimeout(poll, pollingInterval);
+          } else {
+            setStatus('Ticket not found after multiple attempts.');
+            setError('Booking timed out. Please try again.');
+          }
           return;
         }
 
@@ -420,30 +427,24 @@ const BookingConfirmationPage = () => {
           setStatus('Payment Successful 🎉 Ticket confirmed.');
           stopPaymentPolling();
           setError('');
-          return;
+          return; // stop polling after success
         } else {
-          setStatus('Payment not received or seats not booked.');
-          setError('Payment failed or timed out. Please try again.');
+          attempts++;
+          if (attempts < maxAttempts) {
+            setTimeout(poll, pollingInterval);
+          } else {
+            setStatus('Payment not received or seats not booked.');
+            setError('Payment failed or timed out. Please try again.');
+          }
         }
       } catch (err) {
         console.error('Error fetching ticket:', err);
         setError(err.message || 'Error fetching ticket');
         setStatus(null);
       }
-
-      if (isMounted) {
-        pollTimeout = setTimeout(poll, 2000);
-      }
     };
 
     poll();
-
-    return () => {
-      isMounted = false;
-      if (pollTimeout) {
-        clearTimeout(pollTimeout);
-      }
-    };
   };
 
   useEffect(() => {
