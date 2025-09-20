@@ -46,7 +46,8 @@ export const moviesAPI = {
 // City API
 export const cityAPI = {
   setCity: (cityName) => 
-    api.post(`/city/set?cityName=${encodeURIComponent(cityName)}`)
+//    api.post(`/city/set?cityName=${encodeURIComponent(cityName)}`)
+      api.get(`/city/set?cityName=${encodeURIComponent(cityName)}`)
 };
 
 // Payment API

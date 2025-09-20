@@ -10,6 +10,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.http.HttpHeaders;
+import java.time.Duration;
 import java.util.Map;
 
 @RestController
@@ -17,29 +19,33 @@ import java.util.Map;
 public class CityController {
 
     private final JwtUtil jwtUtil;
-    @Autowired
-    private CityService cityService;
+    private final CityService cityService;
 
-    public CityController(JwtUtil jwtUtil) {
+    public CityController(JwtUtil jwtUtil, CityService cityService) {
         this.jwtUtil = jwtUtil;
+        this.cityService = cityService;
     }
 
     // ✅ Endpoint to set the city and return JWT
-    @PostMapping("/set")
-    public ResponseEntity<?> setCity(@RequestParam String cityName, HttpServletResponse response) {
+    @GetMapping("/set")
+    public ResponseEntity<?> setCity(@RequestParam String cityName) {
         Long cityId = cityService.getIdByCity(cityName);
         if(cityId == null){
             throw new CityNotFoundException("City not found: " + cityName);
         }
         String token = jwtUtil.generateToken(cityId);
-        Cookie cookie = new Cookie("token", token);
-        cookie.setHttpOnly(true);
-        cookie.setPath("/");
-        cookie.setMaxAge(60 * 60 * 24); // 1 day
-        cookie.setSecure(true); // Set to true if using HTTPS
-        response.addCookie(cookie);
-        return ResponseEntity.ok(Map.of("message", "City Set successfully. JWT token created."));
-    }
+        ResponseCookie = ResponseCookie.from("token":token)
+                .httpOnly(true)
+                .secure(true)
+                .sameSite("None")
+                .maxAge(Duration.ofDays(1))
+                .path("/")
+                .build();
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE,cookie.toString())
+                .body(Map.of("message","City set Successfully");
+
+   }
 
     @GetMapping("/get")
     public ResponseEntity<String> getCity(@CookieValue(name = "token", required = false) String token) {
