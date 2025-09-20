@@ -10,7 +10,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.net.http.HttpHeaders;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import java.time.Duration;
 import java.util.Map;
 
@@ -29,12 +30,18 @@ public class CityController {
     // ✅ Endpoint to set the city and return JWT
     @GetMapping("/set")
     public ResponseEntity<?> setCity(@RequestParam String cityName) {
+        System.out.println("🏙️ Setting city: " + cityName);
         Long cityId = cityService.getIdByCity(cityName);
+        System.out.println("🔍 City ID found: " + cityId);
+        
         if(cityId == null){
+            System.out.println("❌ City not found: " + cityName);
             throw new CityNotFoundException("City not found: " + cityName);
         }
+        
         String token = jwtUtil.generateToken(cityId);
-        ResponseCookie = ResponseCookie.from("token":token)
+        System.out.println("🎫 Generated token for cityId: " + cityId);
+        ResponseCookie cookie = ResponseCookie.from("token", token)
                 .httpOnly(true)
                 .secure(true)
                 .sameSite("None")
@@ -42,8 +49,8 @@ public class CityController {
                 .path("/")
                 .build();
         return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE,cookie.toString())
-                .body(Map.of("message","City set Successfully");
+                .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                .body(Map.of("message", "City set Successfully"));
 
    }
 
