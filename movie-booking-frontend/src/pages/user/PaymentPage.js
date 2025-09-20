@@ -141,7 +141,7 @@ const PaymentPage = () => {
 
     try {
       console.log('Initiating booking with payload:', payload);
-      const res = await fetch(`http://localhost:8080/booking/seats`, {
+      const res = await fetch(`${process.env.REACT_APP_API_BASE_URL}/booking/seats`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
