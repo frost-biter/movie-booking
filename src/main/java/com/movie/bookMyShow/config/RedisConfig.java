@@ -6,12 +6,11 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
-import org.springframework.data.redis.connection.lettuce.LettucePoolingClientConfiguration;
+import org.springframework.data.redis.connection.lettuce.LettuceClientConfiguration;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
-import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 
 import java.time.Duration;
 
@@ -44,18 +43,8 @@ public class RedisConfig {
             config.setPassword(redisPassword);
         }
 
-        // Configure connection pool for production
-        GenericObjectPoolConfig<Object> poolConfig = new GenericObjectPoolConfig<>();
-        poolConfig.setMaxTotal(20);
-        poolConfig.setMaxIdle(10);
-        poolConfig.setMinIdle(5);
-        poolConfig.setTestOnBorrow(true);
-        poolConfig.setTestOnReturn(true);
-        poolConfig.setTestWhileIdle(true);
-
-        // Configure Lettuce client
-        LettucePoolingClientConfiguration clientConfig = LettucePoolingClientConfiguration.builder()
-                .poolConfig(poolConfig)
+        // Configure Lettuce client (simplified without explicit pooling)
+        LettuceClientConfiguration clientConfig = LettuceClientConfiguration.builder()
                 .commandTimeout(Duration.ofMillis(redisTimeout))
                 .shutdownTimeout(Duration.ofMillis(100))
                 .build();
