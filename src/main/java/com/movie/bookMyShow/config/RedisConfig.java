@@ -1,5 +1,6 @@
 package com.movie.bookMyShow.config;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,6 +15,7 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 import java.time.Duration;
 
+@Slf4j
 @Configuration
 public class RedisConfig {
 
@@ -34,6 +36,13 @@ public class RedisConfig {
 
     @Bean
     public RedisConnectionFactory redisConnectionFactory() {
+        log.info("🔧 Configuring Redis connection...");
+        log.info("📍 Redis Host: {}", redisHost);
+        log.info("🔌 Redis Port: {}", redisPort);
+        log.info("🔐 Redis Password: {}", redisPassword != null && !redisPassword.isEmpty() ? "***SET***" : "NOT SET");
+        log.info("🔒 Redis SSL: {}", redisSsl);
+        log.info("⏱️ Redis Timeout: {}ms", redisTimeout);
+        
         // Configure Redis connection
         RedisStandaloneConfiguration config = new RedisStandaloneConfiguration();
         config.setHostName(redisHost);
@@ -43,16 +52,29 @@ public class RedisConfig {
             config.setPassword(redisPassword);
         }
 
-        // Configure Lettuce client (simplified without explicit pooling)
-        LettuceClientConfiguration clientConfig = LettuceClientConfiguration.builder()
+        // Configure Lettuce client (SSL optional)
+        LettuceClientConfiguration.Builder clientBuilder = LettuceClientConfiguration.builder()
                 .commandTimeout(Duration.ofMillis(redisTimeout))
-                .shutdownTimeout(Duration.ofMillis(100))
-                .build();
+                .shutdownTimeout(Duration.ofMillis(100));
+        if (redisSsl) {
+            clientBuilder.useSsl();
+        }
+        LettuceClientConfiguration clientConfig = clientBuilder.build();
 
         LettuceConnectionFactory factory = new LettuceConnectionFactory(config, clientConfig);
         factory.setValidateConnection(true);
         factory.setShareNativeConnection(false);
         
+        // Initialize and ping
+        try {
+            factory.afterPropertiesSet();
+            String ping = factory.getConnection().ping();
+            log.info("✅ Redis ping response: {}", ping);
+        } catch (Exception ex) {
+            log.error("❌ Redis ping failed: {}", ex.getMessage(), ex);
+        }
+        
+        log.info("✅ Redis connection factory created successfully");
         return factory;
     }
 
