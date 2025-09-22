@@ -32,27 +32,35 @@ public class SeatHoldService {
     public boolean areSeatsAvailable(Long showId, List<Long> seatIds) {
         log.info("Checking seat availability for show: {} and seats: {}", showId, seatIds);
         
-        // 1. Check Redis for temporary holds
-        for (Long seatId : seatIds) {
-            String key = generateKey(showId, seatId);
-            Boolean hasKey = redisTemplate.hasKey(key);
-            log.debug("Checking Redis key {}: {}", key, hasKey);
-            
-            if (Boolean.TRUE.equals(hasKey)) {
-                log.info("Seat {} for show {} is already held", seatId, showId);
-                throw new SeatAlreadyHeldException("Seat " + seatId + " is already held");
+        try {
+            // 1. Check Redis for temporary holds
+            for (Long seatId : seatIds) {
+                String key = generateKey(showId, seatId);
+                Boolean hasKey = redisTemplate.hasKey(key);
+                log.debug("Checking Redis key {}: {}", key, hasKey);
+                
+                if (Boolean.TRUE.equals(hasKey)) {
+                    log.info("Seat {} for show {} is already held", seatId, showId);
+                    throw new SeatAlreadyHeldException("Seat " + seatId + " is already held");
+                }
             }
-        }
 
-        // 2. Check DB for permanent bookings
-        boolean isBooked = showSeatRepo.existsByShowIdAndSeatIdInAndStatus(showId, seatIds, SeatStatus.BOOKED);
-        log.info("DB check for permanent bookings: {}", isBooked);
-        
-        if (isBooked) {
-            throw new SeatAlreadyBookedException("One or more seats are already booked");
+            // 2. Check DB for permanent bookings
+            boolean isBooked = showSeatRepo.existsByShowIdAndSeatIdInAndStatus(showId, seatIds, SeatStatus.BOOKED);
+            log.info("DB check for permanent bookings: {}", isBooked);
+            
+            if (isBooked) {
+                throw new SeatAlreadyBookedException("One or more seats are already booked");
+            }
+            
+            return true;
+        } catch (Exception e) {
+            if (e instanceof SeatAlreadyHeldException || e instanceof SeatAlreadyBookedException) {
+                throw e;
+            }
+            log.error("❌ Redis connection error while checking seat availability: {}", e.getMessage(), e);
+            throw new RuntimeException("Unable to connect to Redis. Please try again later.", e);
         }
-        
-        return true;
     }
 
     public String holdSeats(Long showId, List<Long> seatIds) {
