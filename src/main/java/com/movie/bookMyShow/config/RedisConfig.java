@@ -44,10 +44,23 @@ public class RedisConfig {
         if (redisSsl) {
             clientBuilder.useSsl();
         }
-        // Set a reasonable command timeout
-        clientBuilder.commandTimeout(Duration.ofSeconds(10));
+        clientBuilder.commandTimeout(Duration.ofSeconds(5));
         
-        return new LettuceConnectionFactory(config, clientBuilder.build());
+        LettuceClientConfiguration clientConfig = clientBuilder.build();
+
+        LettuceConnectionFactory factory = new LettuceConnectionFactory(config, clientConfig);
+
+        // --- CRITICAL FIXES FOR CLOUD ENVIRONMENTS ---
+        // Ensures that each command gets a connection that is not shared, which is
+        // important for transactional operations like yours.
+        factory.setShareNativeConnection(false);
+
+        // Tells the factory to test connections before they are used.
+        // This prevents your code from ever getting a "stale" or dead connection.
+        factory.setValidateConnection(true);
+        // --- END OF FIXES ---
+
+        return factory;
     }
 
     @Bean
@@ -55,15 +68,13 @@ public class RedisConfig {
         RedisTemplate<String, String> template = new RedisTemplate<>();
         template.setConnectionFactory(connectionFactory);
 
-        // Use String serializers for everything, since that's what your service uses.
         StringRedisSerializer stringSerializer = new StringRedisSerializer();
         template.setKeySerializer(stringSerializer);
         template.setValueSerializer(stringSerializer);
         template.setHashKeySerializer(stringSerializer);
         template.setHashValueSerializer(stringSerializer);
 
-        // This is CRITICAL for your code to work.
-        // It allows the template to use WATCH/MULTI/EXEC transactions.
+        // Required for SessionCallback (WATCH/MULTI/EXEC) to work correctly.
         template.setEnableTransactionSupport(true);
 
         return template;
