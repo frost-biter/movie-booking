@@ -21,17 +21,26 @@ public class MovieController {
     private JwtUtil jwtUtil;
     @GetMapping("/list")
     public ResponseEntity<?> getMoviesByCity(@CookieValue(name = "token", required = false) String token) {
+        System.out.println("🎬 Movies list endpoint called");
+        System.out.println("🔍 Token received: " + (token != null ? "Present" : "Null"));
+        
         if (token == null) {
-            System.out.println("Token is null or empty");
+            System.out.println("❌ Token is null or empty");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Authentication required");
         }
 
-        Integer cityId = jwtUtil.extractCityId(token); // Extract city from JWT
-        System.out.println("City ID from token: " + cityId);
-        
-        if (cityId == null) {
-            System.out.println("No city ID found in token");
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("No city ID found in token");
+        Integer cityId;
+        try {
+            cityId = jwtUtil.extractCityId(token); // Extract city from JWT
+            System.out.println("🏙️ City ID from token: " + cityId);
+            
+            if (cityId == null) {
+                System.out.println("❌ No city ID found in token");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("No city ID found in token");
+            }
+        } catch (Exception e) {
+            System.out.println("❌ Error extracting city ID from token: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid token");
         }
         
         try {

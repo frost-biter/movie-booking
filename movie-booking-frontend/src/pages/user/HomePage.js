@@ -35,10 +35,16 @@ const HomePage = ({ city, onCityChange }) => {
     setError(null);
     
     try {
-      // Set city first
+      // Set city first if not already set
       if (city) {
         console.log('Setting city:', city);
         await cityAPI.setCity(city);
+        // Wait a bit for the cookie to be set
+        await new Promise(resolve => setTimeout(resolve, 100));
+      } else {
+        console.log('No city selected, cannot fetch movies');
+        setError('Please select a city first');
+        return;
       }
       
       // Fetch all movies
@@ -114,7 +120,9 @@ const HomePage = ({ city, onCityChange }) => {
 
   // Fetch movies when city changes
   useEffect(() => {
-    fetchMovies();
+    if (city) {
+      fetchMovies();
+    }
   }, [fetchMovies, city]);
 
   // Handle movie selection
@@ -141,11 +149,22 @@ const HomePage = ({ city, onCityChange }) => {
     movie.genre ? movie.genre.split(',').map(g => g.trim()) : []
   ))];
 
+  if (!city) {
+    return (
+      <Container className="my-5">
+        <Alert variant="info">
+          <h4>Welcome to BookMyShow!</h4>
+          <p>Please select a city to view available movies and shows.</p>
+        </Alert>
+      </Container>
+    );
+  }
+
   if (loading) {
     return (
       <Container className="d-flex justify-content-center align-items-center" style={{ minHeight: '60vh' }}>
         <Spinner animation="border" role="status">
-          <span className="visually-hidden">Loading...</span>
+          <span className="visually-hidden">Loading movies for {city}...</span>
         </Spinner>
       </Container>
     );
@@ -154,7 +173,13 @@ const HomePage = ({ city, onCityChange }) => {
   if (error) {
     return (
       <Container className="my-5">
-        <Alert variant="danger">{error}</Alert>
+        <Alert variant="danger">
+          <h5>Error Loading Movies</h5>
+          <p>{error}</p>
+          <Button variant="primary" onClick={fetchMovies}>
+            Try Again
+          </Button>
+        </Alert>
       </Container>
     );
   }

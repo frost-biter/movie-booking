@@ -51,6 +51,7 @@ public class SecurityConfig {
                         .requestMatchers("/city/**").permitAll()
                         .requestMatchers("/admin/register", "/admin/login").permitAll()
                         .requestMatchers("/admin/update/**").hasRole("ADMIN")
+                        .requestMatchers("/movies/**").authenticated()
                         .anyRequest().authenticated()
                 )
                 .httpBasic(AbstractHttpConfigurer::disable)
