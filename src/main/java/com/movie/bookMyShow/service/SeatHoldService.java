@@ -36,8 +36,9 @@ public class SeatHoldService {
             // 1. Check Redis for temporary holds
             for (Long seatId : seatIds) {
                 String key = generateKey(showId, seatId);
+                log.info("➡️  Checking Redis for hold key: {}", key);
                 Boolean hasKey = redisTemplate.hasKey(key);
-                log.debug("Checking Redis key {}: {}", key, hasKey);
+                log.info("⬅️  Redis hasKey({}) => {}", key, hasKey);
                 
                 if (Boolean.TRUE.equals(hasKey)) {
                     log.info("Seat {} for show {} is already held", seatId, showId);
@@ -45,6 +46,7 @@ public class SeatHoldService {
                 }
             }
 
+            log.info("Proceeding to DB check for permanent bookings for show: {}", showId);
             // 2. Check DB for permanent bookings
             boolean isBooked = showSeatRepo.existsByShowIdAndSeatIdInAndStatus(showId, seatIds, SeatStatus.BOOKED);
             log.info("DB check for permanent bookings: {}", isBooked);
@@ -78,7 +80,7 @@ public class SeatHoldService {
                     holdId,
                     HOLD_DURATION
                 );
-                
+                log.info("Attempted to set key '{}'. Redis command returned: {}", key, success);
                 if (Boolean.TRUE.equals(success)) {
                     acquiredKeys.add(key);
                     log.debug("Successfully acquired seat {} for hold {}", seatId, holdId);
