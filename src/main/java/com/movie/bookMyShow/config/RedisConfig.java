@@ -45,7 +45,7 @@ public class RedisConfig {
             clientBuilder.useSsl();
         }
         // Set a reasonable command timeout
-        clientBuilder.commandTimeout(Duration.ofSeconds(2));
+        clientBuilder.commandTimeout(Duration.ofSeconds(10));
         
         return new LettuceConnectionFactory(config, clientBuilder.build());
     }
