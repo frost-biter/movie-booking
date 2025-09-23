@@ -6,11 +6,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
-import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.connection.lettuce.LettuceClientConfiguration;
+import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 import java.time.Duration;
@@ -19,79 +17,55 @@ import java.time.Duration;
 @Configuration
 public class RedisConfig {
 
-    @Value("${spring.data.redis.host:localhost}")
+    @Value("${spring.data.redis.host}")
     private String redisHost;
 
-    @Value("${spring.data.redis.port:6379}")
+    @Value("${spring.data.redis.port}")
     private int redisPort;
 
-    @Value("${spring.data.redis.password:}")
+    @Value("${spring.data.redis.password}")
     private String redisPassword;
 
-    @Value("${spring.data.redis.ssl:false}")
+    @Value("${spring.data.redis.ssl}")
     private boolean redisSsl;
 
-    @Value("${spring.data.redis.timeout:10000}")
-    private int redisTimeout;
-
     @Bean
-    public RedisConnectionFactory redisConnectionFactory() {
-        log.info("🔧 Configuring Redis connection...");
-        log.info("📍 Redis Host: {}", redisHost);
-        log.info("🔌 Redis Port: {}", redisPort);
-        log.info("🔐 Redis Password: {}", redisPassword != null && !redisPassword.isEmpty() ? "***SET***" : "NOT SET");
-        log.info("🔒 Redis SSL: {}", redisSsl);
-        log.info("⏱️ Redis Timeout: {}ms", redisTimeout);
+    public LettuceConnectionFactory redisConnectionFactory() {
+        log.info("🔧 Configuring Redis connection to Host: {}", redisHost);
         
-        // Configure Redis connection
         RedisStandaloneConfiguration config = new RedisStandaloneConfiguration();
         config.setHostName(redisHost);
         config.setPort(redisPort);
-        
         if (redisPassword != null && !redisPassword.isEmpty()) {
             config.setPassword(redisPassword);
         }
 
-        // Configure Lettuce client (SSL optional)
-        LettuceClientConfiguration.Builder clientBuilder = LettuceClientConfiguration.builder()
-                .commandTimeout(Duration.ofMillis(redisTimeout))
-                .shutdownTimeout(Duration.ofMillis(100));
+        LettuceClientConfiguration.LettuceClientConfigurationBuilder clientBuilder = LettuceClientConfiguration.builder();
         if (redisSsl) {
             clientBuilder.useSsl();
         }
-        LettuceClientConfiguration clientConfig = clientBuilder.build();
-
-        LettuceConnectionFactory factory = new LettuceConnectionFactory(config, clientConfig);
-        factory.setValidateConnection(true);
-        factory.setShareNativeConnection(false);
+        // Set a reasonable command timeout
+        clientBuilder.commandTimeout(Duration.ofSeconds(2));
         
-        // Initialize and ping
-        try {
-            factory.afterPropertiesSet();
-            String ping = factory.getConnection().ping();
-            log.info("✅ Redis ping response: {}", ping);
-        } catch (Exception ex) {
-            log.error("❌ Redis ping failed: {}", ex.getMessage(), ex);
-        }
-        
-        log.info("✅ Redis connection factory created successfully");
-        return factory;
+        return new LettuceConnectionFactory(config, clientBuilder.build());
     }
 
     @Bean
-    public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory factory) {
-        RedisTemplate<String, Object> template = new RedisTemplate<>();
-        template.setConnectionFactory(factory);
-        template.setKeySerializer(new StringRedisSerializer());
-        template.setValueSerializer(new GenericJackson2JsonRedisSerializer());
-        template.setHashKeySerializer(new StringRedisSerializer());
-        template.setHashValueSerializer(new GenericJackson2JsonRedisSerializer());
-        template.afterPropertiesSet();
+    public RedisTemplate<String, String> redisTemplate(RedisConnectionFactory connectionFactory) {
+        RedisTemplate<String, String> template = new RedisTemplate<>();
+        template.setConnectionFactory(connectionFactory);
+
+        // Use String serializers for everything, since that's what your service uses.
+        StringRedisSerializer stringSerializer = new StringRedisSerializer();
+        template.setKeySerializer(stringSerializer);
+        template.setValueSerializer(stringSerializer);
+        template.setHashKeySerializer(stringSerializer);
+        template.setHashValueSerializer(stringSerializer);
+
+        // This is CRITICAL for your code to work.
+        // It allows the template to use WATCH/MULTI/EXEC transactions.
+        template.setEnableTransactionSupport(true);
+
         return template;
-    }
-
-    @Bean
-    public StringRedisTemplate stringRedisTemplate(RedisConnectionFactory factory) {
-        return new StringRedisTemplate(factory);
     }
 }
