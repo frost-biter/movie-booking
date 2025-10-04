@@ -238,17 +238,14 @@ public class PaymentService {
         if (!seatHoldService.validateHold(request.getShowId(), holdId, request.getSeatIds())) {
             log.warn("Hold {} has expired or is invalid", holdId);
             
-            // Check if seats are still available
-            if (seatHoldService.areSeatsAvailable(request.getShowId(), request.getSeatIds())) {
-                log.info("Seats are still available, attempting to rebook with new hold");
-                // Try to get a new hold
-                String newHoldId = seatHoldService.holdSeats(request.getShowId(), request.getSeatIds());
-                if (newHoldId != null) {
-                    log.info("Successfully acquired new hold {}, proceeding with booking", newHoldId);
-                    // Create booking with new hold
-                    return createBookingAndGetTicket(request, newHoldId, show, seats);
-                }
+            
+            String newHoldId = seatHoldService.holdSeats(request.getShowId(), request.getSeatIds());
+            if (newHoldId != null) {
+                log.info("Successfully acquired new hold {}, proceeding with booking", newHoldId);
+                // Create booking with new hold
+                return createBookingAndGetTicket(request, newHoldId, show, seats);
             }
+            
             
             log.warn("Seats are no longer available, reverting payment");
             revertPayment(request);
