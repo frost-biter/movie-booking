@@ -26,37 +26,68 @@ public class RedisConfig {
     @Value("${spring.data.redis.password}")
     private String redisPassword;
 
-    @Value("${spring.data.redis.ssl.enabled}")
+    @Value("${spring.data.redis.ssl.enabled:false}")
     private boolean redisSsl;
 
     @Bean
     public LettuceConnectionFactory redisConnectionFactory() {
-        log.info("✅✅✅ Initializing Simplified RedisConfig. The code is new! ✅✅✅");
-        log.info("🔧 Configuring Redis connection to Host: {}", redisHost);
+        log.info("🚀 Initializing Redis Configuration for Upstash");
+        log.info("🔧 Redis Host: {}", redisHost);
+        log.info("🔧 Redis Port: {}", redisPort);
+        log.info("🔧 Redis SSL Enabled: {}", redisSsl);
+        log.info("🔧 Redis Password Provided: {}", redisPassword != null && !redisPassword.isEmpty());
         
-        RedisStandaloneConfiguration config = new RedisStandaloneConfiguration();
-        config.setHostName(redisHost);
-        config.setPort(redisPort);
-        if (redisPassword != null && !redisPassword.isEmpty()) {
-            config.setPassword(redisPassword);
+        try {
+            RedisStandaloneConfiguration config = new RedisStandaloneConfiguration();
+            config.setHostName(redisHost);
+            config.setPort(redisPort);
+            
+            if (redisPassword != null && !redisPassword.isEmpty()) {
+                config.setPassword(redisPassword);
+                log.info("✅ Redis password configured");
+            } else {
+                log.warn("⚠️ No Redis password provided - this might cause connection issues");
+            }
+
+            LettuceClientConfiguration.LettuceClientConfigurationBuilder clientBuilder = LettuceClientConfiguration.builder();
+            
+            // Enable SSL for Upstash (most Upstash instances require SSL)
+            if (redisSsl) {
+                log.info("🔒 Enabling SSL for Redis connection");
+                clientBuilder.useSsl();
+            } else {
+                log.warn("⚠️ SSL disabled - Upstash typically requires SSL");
+            }
+            
+            // Optimized timeouts for Upstash
+            clientBuilder.commandTimeout(Duration.ofSeconds(10));
+            clientBuilder.shutdownTimeout(Duration.ofSeconds(5));
+            
+            // Connection pool settings optimized for Upstash
+            clientBuilder.poolConfig(org.apache.commons.pool2.impl.GenericObjectPoolConfig.builder()
+                .maxTotal(8)
+                .maxIdle(4)
+                .minIdle(1)
+                .testOnBorrow(true)
+                .testOnReturn(true)
+                .testWhileIdle(true)
+                .timeBetweenEvictionRunsMillis(30000)
+                .build());
+            
+            LettuceClientConfiguration clientConfig = clientBuilder.build();
+            LettuceConnectionFactory factory = new LettuceConnectionFactory(config, clientConfig);
+
+            // Critical settings for cloud Redis
+            factory.setValidateConnection(true);
+            factory.setShareNativeConnection(false);
+            
+            log.info("✅ Redis connection factory configured successfully");
+            return factory;
+            
+        } catch (Exception e) {
+            log.error("❌ Failed to configure Redis connection factory: {}", e.getMessage(), e);
+            throw new RuntimeException("Redis configuration failed", e);
         }
-
-        LettuceClientConfiguration.LettuceClientConfigurationBuilder clientBuilder = LettuceClientConfiguration.builder();
-        if (redisSsl) {
-            clientBuilder.useSsl();
-        }
-        // Set a reasonable command timeout
-        clientBuilder.commandTimeout(Duration.ofSeconds(5));
-        
-        LettuceConnectionFactory factory = new LettuceConnectionFactory(config, clientBuilder.build());
-
-        // --- THIS IS THE CRITICAL FIX FOR STALE CONNECTIONS ---
-        // This tells the factory to test connections before they are used,
-        // preventing your code from ever getting a "stale" or dead connection.
-        factory.setValidateConnection(true);
-        log.info("🔧🔧🔧 Redis connection validation has been set to TRUE. 🔧🔧🔧");
-
-        return factory;
     }
 
     @Bean
