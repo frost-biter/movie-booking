@@ -79,14 +79,24 @@ public class SeatHoldService {
                         
                         if (attempt < maxRetries) {
                             log.warn("Redis SETNX returned null for key '{}' (attempt {}), retrying...", key, attempt);
-                            Thread.sleep(1000 * attempt); // Exponential backoff
+                            try {
+                                Thread.sleep(1000 * attempt); // Exponential backoff
+                            } catch (InterruptedException ie) {
+                                Thread.currentThread().interrupt();
+                                throw new RuntimeException("Interrupted during Redis retry", ie);
+                            }
                         }
                     } catch (Exception e) {
                         log.warn("Redis SETNX failed for key '{}' (attempt {}): {}", key, attempt, e.getMessage());
                         if (attempt == maxRetries) {
                             throw e;
                         }
-                        Thread.sleep(1000 * attempt);
+                        try {
+                            Thread.sleep(1000 * attempt);
+                        } catch (InterruptedException ie) {
+                            Thread.currentThread().interrupt();
+                            throw new RuntimeException("Interrupted during Redis retry", ie);
+                        }
                     }
                 }
 
