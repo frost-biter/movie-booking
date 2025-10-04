@@ -46,27 +46,58 @@ public class SeatHoldService {
         String holdId = UUID.randomUUID().toString();
         log.info("Attempting to create hold with ID {} for show {} and seats {}", holdId, showId, seatIds);
 
-        // 1. Check DB for permanent bookings first. This is a fast and critical check.
+        // 1. Test Redis connection first
+        if (!testRedisConnection()) {
+            log.error("Redis connection test failed - cannot proceed with seat holds");
+            throw new RuntimeException("Redis service is temporarily unavailable. Please try again later.");
+        }
+
+        // 2. Check DB for permanent bookings first. This is a fast and critical check.
         if (showSeatRepo.existsByShowIdAndSeatIdInAndStatus(showId, seatIds, SeatStatus.BOOKED)) {
             log.warn("Hold failed: One or more seats for show {} are already permanently booked.", showId);
             throw new SeatAlreadyBookedException("One or more of the selected seats are already booked.");
         }
 
-        // 2. Atomically acquire temporary holds in Redis.
+        // 3. Atomically acquire temporary holds in Redis with retry logic
         List<String> acquiredKeys = new ArrayList<>();
+        int maxRetries = 3;
+        
         try {
             for (Long seatId : seatIds) {
                 String key = generateKey(showId, seatId);
-                Boolean success = redisTemplate.opsForValue().setIfAbsent(key, holdId, HOLD_DURATION);
-                log.info("Attempted Redis SETNX for key '{}'. Success: {}", key, success);
+                Boolean success = null;
+                
+                // Retry logic for Redis operations
+                for (int attempt = 1; attempt <= maxRetries; attempt++) {
+                    try {
+                        success = redisTemplate.opsForValue().setIfAbsent(key, holdId, HOLD_DURATION);
+                        log.info("Attempted Redis SETNX for key '{}' (attempt {}). Success: {}", key, attempt, success);
+                        
+                        if (success != null) {
+                            break; // Success, exit retry loop
+                        }
+                        
+                        if (attempt < maxRetries) {
+                            log.warn("Redis SETNX returned null for key '{}' (attempt {}), retrying...", key, attempt);
+                            Thread.sleep(1000 * attempt); // Exponential backoff
+                        }
+                    } catch (Exception e) {
+                        log.warn("Redis SETNX failed for key '{}' (attempt {}): {}", key, attempt, e.getMessage());
+                        if (attempt == maxRetries) {
+                            throw e;
+                        }
+                        Thread.sleep(1000 * attempt);
+                    }
+                }
 
                 if (success == null) {
-                    log.error("Redis command returned null for key '{}'. This indicates a connection problem.", key);
-                    throw new RuntimeException("Could not hold seats due to a system issue. Please try again.");
+                    log.error("Redis command returned null for key '{}' after {} attempts. This indicates a connection problem.", key, maxRetries);
+                    throw new RuntimeException("Could not hold seats due to a Redis connection issue. Please try again.");
                 }
 
                 if (success) {
                     acquiredKeys.add(key);
+                    log.info("✅ Successfully acquired seat {} for hold {}", seatId, holdId);
                 } else {
                     // This is the race condition outcome: another user got this seat first.
                     log.warn("Failed to acquire seat hold for key '{}'. It was already held.", key);
@@ -131,6 +162,46 @@ public class SeatHoldService {
 
     private String generateKey(Long showId, Long seatId) {
         return String.format("%s%d:%d", HOLD_KEY_PREFIX, showId, seatId);
+    }
+    
+    /**
+     * Test Redis connection with basic operations
+     * @return true if Redis is working, false otherwise
+     */
+    public boolean testRedisConnection() {
+        try {
+            String testKey = "test:connection:" + System.currentTimeMillis();
+            String testValue = "test";
+            
+            // Test basic SET operation
+            redisTemplate.opsForValue().set(testKey, testValue, Duration.ofSeconds(5));
+            
+            // Test GET operation
+            String retrieved = redisTemplate.opsForValue().get(testKey);
+            
+            // Test SETNX operation (critical for seat holds)
+            String nxKey = "test:nx:" + System.currentTimeMillis();
+            Boolean nxResult = redisTemplate.opsForValue().setIfAbsent(nxKey, "nxValue", Duration.ofSeconds(5));
+            
+            // Clean up
+            redisTemplate.delete(testKey);
+            redisTemplate.delete(nxKey);
+            
+            boolean isWorking = testValue.equals(retrieved) && Boolean.TRUE.equals(nxResult);
+            
+            if (isWorking) {
+                log.info("✅ Redis connection test passed");
+            } else {
+                log.error("❌ Redis connection test failed - SET/GET: {}, SETNX: {}", 
+                    testValue.equals(retrieved), Boolean.TRUE.equals(nxResult));
+            }
+            
+            return isWorking;
+            
+        } catch (Exception e) {
+            log.error("❌ Redis connection test failed with exception: {}", e.getMessage(), e);
+            return false;
+        }
     }
 }
 

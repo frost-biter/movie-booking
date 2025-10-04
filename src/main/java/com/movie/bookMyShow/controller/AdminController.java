@@ -13,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.data.redis.core.StringRedisTemplate;
 
 import java.time.Duration;
 import java.util.Map;
@@ -22,6 +23,9 @@ import java.util.Map;
 public class AdminController {
     @Autowired
     private MovieService movieService;
+
+    @Autowired
+    private SeatHoldService seatHoldService;
 
     @PostMapping("/add-movie")
     public ResponseEntity<ApiResponse> addMovie(@RequestBody Movie movie) {
@@ -110,5 +114,31 @@ public class AdminController {
 
         response.addCookie(cookie);
         return ResponseEntity.ok("Login successful");
+    }
+    
+    @GetMapping("/redis-health")
+    public ResponseEntity<Map<String, Object>> redisHealth() {
+        try {
+            log.info("🔍 Admin endpoint: Testing Redis connection...");
+            
+            boolean isHealthy = seatHoldService.testRedisConnection();
+            
+            return ResponseEntity.ok(Map.of(
+                "status", isHealthy ? "UP" : "DOWN",
+                "redis_connection", isHealthy,
+                "timestamp", System.currentTimeMillis(),
+                "message", isHealthy ? "Redis is working properly" : "Redis connection failed"
+            ));
+            
+        } catch (Exception e) {
+            log.error("❌ Redis health check failed: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(Map.of(
+                "status", "DOWN",
+                "redis_connection", false,
+                "error", e.getMessage(),
+                "timestamp", System.currentTimeMillis(),
+                "message", "Redis connection failed: " + e.getMessage()
+            ));
+        }
     }
 }
