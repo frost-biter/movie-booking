@@ -31,7 +31,9 @@ public class RedisConfig {
 
     @Bean
     public LettuceConnectionFactory redisConnectionFactory() {
-        log.info("🔧 Configuring Redis connection to Host: {}", redisHost);
+        log.info("🔧 Configuring Redis connection to Host: {}:{}", redisHost, redisPort);
+        log.info("🔧 Redis SSL enabled: {}", redisSsl);
+        log.info("🔧 Redis password provided: {}", redisPassword != null && !redisPassword.isEmpty());
         
         RedisStandaloneConfiguration config = new RedisStandaloneConfiguration();
         config.setHostName(redisHost);
@@ -42,22 +44,33 @@ public class RedisConfig {
 
         LettuceClientConfiguration.LettuceClientConfigurationBuilder clientBuilder = LettuceClientConfiguration.builder();
         if (redisSsl) {
+            log.info("🔧 Enabling SSL for Redis connection");
             clientBuilder.useSsl();
         }
-        clientBuilder.commandTimeout(Duration.ofSeconds(5));
+        
+        // Increased timeouts for cloud environments
+        clientBuilder.commandTimeout(Duration.ofSeconds(10));
+        clientBuilder.shutdownTimeout(Duration.ofSeconds(5));
+        
+        // Connection pool configuration optimized for Render
+        clientBuilder.poolConfig(org.apache.commons.pool2.impl.GenericObjectPoolConfig.builder()
+            .maxTotal(10)
+            .maxIdle(5)
+            .minIdle(1)
+            .testOnBorrow(true)
+            .testOnReturn(true)
+            .testWhileIdle(true)
+            .timeBetweenEvictionRuns(Duration.ofSeconds(30))
+            .build());
         
         LettuceClientConfiguration clientConfig = clientBuilder.build();
 
         LettuceConnectionFactory factory = new LettuceConnectionFactory(config, clientConfig);
 
         // --- CRITICAL FIXES FOR CLOUD ENVIRONMENTS ---
-        // Ensures that each command gets a connection that is not shared, which is
-        // important for transactional operations like yours.
-        factory.setShareNativeConnection(false);
-
-        // Tells the factory to test connections before they are used.
-        // This prevents your code from ever getting a "stale" or dead connection.
         factory.setValidateConnection(true);
+        factory.setShareNativeConnection(false); // Important for cloud environments
+        
         // --- END OF FIXES ---
 
         return factory;

@@ -28,6 +28,10 @@ public class SeatHoldService {
         this.redisTemplate = redisTemplate;
         this.showSeatRepo = showSeatRepo;
     }
+    
+    public RedisTemplate<String, String> getRedisTemplate() {
+        return redisTemplate;
+    }
 
     public boolean areSeatsAvailable(Long showId, List<Long> seatIds) {
         log.info("Checking seat availability for show: {} and seats: {}", showId, seatIds);
@@ -56,37 +60,97 @@ public class SeatHoldService {
         String holdId = UUID.randomUUID().toString();
         log.info("Creating hold with ID {} for show {} and seats {}", holdId, showId, seatIds);
         
+        // Test Redis connection first with retry logic
+        int maxRetries = 3;
+        boolean redisAvailable = false;
+        
+        for (int attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                String testKey = "test:connection:" + holdId + ":" + attempt;
+                redisTemplate.opsForValue().set(testKey, "test", Duration.ofSeconds(1));
+                String retrieved = redisTemplate.opsForValue().get(testKey);
+                redisTemplate.delete(testKey);
+                
+                if (!"test".equals(retrieved)) {
+                    throw new RuntimeException("Redis test failed - value mismatch");
+                }
+                redisAvailable = true;
+                log.info("✅ Redis connection test successful (attempt {})", attempt);
+                break;
+            } catch (Exception e) {
+                log.warn("⚠️ Redis connection test failed (attempt {}): {}", attempt, e.getMessage());
+                if (attempt == maxRetries) {
+                    log.error("❌ Redis connection failed after {} attempts", maxRetries);
+                    throw new RuntimeException("Redis connection failed after " + maxRetries + " attempts", e);
+                }
+                try {
+                    Thread.sleep(1000 * attempt); // Exponential backoff
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException("Interrupted during Redis retry", ie);
+                }
+            }
+        }
+        
         // Try to acquire locks for all seats atomically
         List<String> acquiredKeys = new ArrayList<>();
         try {
             for (Long seatId : seatIds) {
                 String key = generateKey(showId, seatId);
-                // Modern Redis SET with NX and EX options
-                Boolean success = redisTemplate.opsForValue().setIfAbsent(
-                    key,
-                    holdId,
-                    HOLD_DURATION
-                );
-                log.info("Attempted to set key '{}'. Redis command returned: {}", key, success);
+                log.info("🔑 Attempting to acquire key: {}", key);
+                
+                // Modern Redis SET with NX and EX options with retry
+                Boolean success = null;
+                for (int attempt = 1; attempt <= maxRetries; attempt++) {
+                    try {
+                        success = redisTemplate.opsForValue().setIfAbsent(
+                            key,
+                            holdId,
+                            HOLD_DURATION
+                        );
+                        break; // Success, exit retry loop
+                    } catch (Exception e) {
+                        log.warn("⚠️ Redis setIfAbsent failed (attempt {}): {}", attempt, e.getMessage());
+                        if (attempt == maxRetries) {
+                            throw e;
+                        }
+                        try {
+                            Thread.sleep(500 * attempt); // Short backoff
+                        } catch (InterruptedException ie) {
+                            Thread.currentThread().interrupt();
+                            throw new RuntimeException("Interrupted during Redis retry", ie);
+                        }
+                    }
+                }
+                
+                log.info("📊 Redis setIfAbsent result for key '{}': {} (type: {})", 
+                    key, success, success != null ? success.getClass().getSimpleName() : "null");
+                
+                if (success == null) {
+                    log.error("❌ Redis setIfAbsent returned null for key: {}", key);
+                    throw new RuntimeException("Redis operation failed - returned null");
+                }
+                
                 if (Boolean.TRUE.equals(success)) {
                     acquiredKeys.add(key);
-                    log.debug("Successfully acquired seat {} for hold {}", seatId, holdId);
+                    log.info("✅ Successfully acquired seat {} for hold {}", seatId, holdId);
                 } else {
                     // If we couldn't acquire all seats, release the ones we did acquire
-                    log.info("Failed to acquire seat {} for show {}", seatId, showId);
+                    log.warn("⚠️ Failed to acquire seat {} for show {} (already held)", seatId, showId);
                     releaseAcquiredSeats(acquiredKeys, holdId);
                     throw new SeatAlreadyHeldException("Seat " + seatId + " is already held");
                 }
             }
-            log.info("Successfully acquired all seats for hold {}", holdId);
+            log.info("🎉 Successfully acquired all seats for hold {}", holdId);
             return holdId;
         } catch (Exception e) {
             // If any error occurs, release all acquired seats
+            log.error("❌ Error in holdSeats: {}", e.getMessage(), e);
             releaseAcquiredSeats(acquiredKeys, holdId);
             if (e instanceof SeatAlreadyHeldException) {
                 throw e;
             }
-            throw new RuntimeException("Failed to create seat hold", e);
+            throw new RuntimeException("Failed to create seat hold: " + e.getMessage(), e);
         }
     }
 
