@@ -31,9 +31,8 @@ public class RedisConfig {
 
     @Bean
     public LettuceConnectionFactory redisConnectionFactory() {
-        log.info("🔧 Configuring Redis connection to Host: {}:{}", redisHost, redisPort);
-        log.info("🔧 Redis SSL enabled: {}", redisSsl);
-        log.info("🔧 Redis password provided: {}", redisPassword != null && !redisPassword.isEmpty());
+        log.info("✅✅✅ Initializing Simplified RedisConfig. The code is new! ✅✅✅");
+        log.info("🔧 Configuring Redis connection to Host: {}", redisHost);
         
         RedisStandaloneConfiguration config = new RedisStandaloneConfiguration();
         config.setHostName(redisHost);
@@ -44,34 +43,18 @@ public class RedisConfig {
 
         LettuceClientConfiguration.LettuceClientConfigurationBuilder clientBuilder = LettuceClientConfiguration.builder();
         if (redisSsl) {
-            log.info("🔧 Enabling SSL for Redis connection");
             clientBuilder.useSsl();
         }
+        // Set a reasonable command timeout
+        clientBuilder.commandTimeout(Duration.ofSeconds(5));
         
-        // Increased timeouts for cloud environments
-        clientBuilder.commandTimeout(Duration.ofSeconds(10));
-        clientBuilder.shutdownTimeout(Duration.ofSeconds(5));
-        
-        // Connection pool configuration optimized for Render
-        clientBuilder.poolConfig(org.apache.commons.pool2.impl.GenericObjectPoolConfig.builder()
-            .maxTotal(10)
-            .maxIdle(5)
-            .minIdle(1)
-            .testOnBorrow(true)
-            .testOnReturn(true)
-            .testWhileIdle(true)
-            .timeBetweenEvictionRunsMillis(30000)
-            .build());
-        
-        LettuceClientConfiguration clientConfig = clientBuilder.build();
+        LettuceConnectionFactory factory = new LettuceConnectionFactory(config, clientBuilder.build());
 
-        LettuceConnectionFactory factory = new LettuceConnectionFactory(config, clientConfig);
-
-        // --- CRITICAL FIXES FOR CLOUD ENVIRONMENTS ---
+        // --- THIS IS THE CRITICAL FIX FOR STALE CONNECTIONS ---
+        // This tells the factory to test connections before they are used,
+        // preventing your code from ever getting a "stale" or dead connection.
         factory.setValidateConnection(true);
-        factory.setShareNativeConnection(false); // Important for cloud environments
-        
-        // --- END OF FIXES ---
+        log.info("🔧🔧🔧 Redis connection validation has been set to TRUE. 🔧🔧🔧");
 
         return factory;
     }
@@ -93,3 +76,4 @@ public class RedisConfig {
         return template;
     }
 }
+

@@ -14,6 +14,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -28,214 +29,108 @@ public class SeatHoldService {
         this.redisTemplate = redisTemplate;
         this.showSeatRepo = showSeatRepo;
     }
-    
-    public RedisTemplate<String, String> getRedisTemplate() {
-        return redisTemplate;
-    }
 
-    public boolean areSeatsAvailable(Long showId, List<Long> seatIds) {
-        log.info("Checking seat availability for show: {} and seats: {}", showId, seatIds);
-        
-        try {
-            // Only check DB for permanent bookings - Redis holds are checked atomically in holdSeats()
-            log.info("Checking DB for permanent bookings for show: {}", showId);
-            boolean isBooked = showSeatRepo.existsByShowIdAndSeatIdInAndStatus(showId, seatIds, SeatStatus.BOOKED);
-            log.info("DB check for permanent bookings: {}", isBooked);
-            
-            if (isBooked) {
-                throw new SeatAlreadyBookedException("One or more seats are already booked");
-            }
-            
-            return true;
-        } catch (Exception e) {
-            if (e instanceof SeatAlreadyBookedException) {
-                throw e;
-            }
-            log.error("❌ Error while checking seat availability: {}", e.getMessage(), e);
-            throw new RuntimeException("Unable to check seat availability. Please try again later.", e);
-        }
-    }
-
+    /**
+     * Atomically holds seats for a given show.
+     * This method first checks for permanent bookings in the database, then attempts to acquire temporary holds in Redis.
+     * It replaces the need for a separate areSeatsAvailable() check, thus preventing race conditions.
+     *
+     * @param showId  The ID of the show.
+     * @param seatIds The list of seat IDs to hold.
+     * @return A unique hold ID if successful.
+     * @throws SeatAlreadyBookedException if one or more seats are already permanently booked.
+     * @throws SeatAlreadyHeldException   if one or more seats are already held by another user.
+     * @throws RuntimeException           if a Redis connection issue occurs.
+     */
     public String holdSeats(Long showId, List<Long> seatIds) {
         String holdId = UUID.randomUUID().toString();
-        log.info("Creating hold with ID {} for show {} and seats {}", holdId, showId, seatIds);
-        
-        // Test Redis connection first with retry logic
-        int maxRetries = 3;
-        boolean redisAvailable = false;
-        
-        for (int attempt = 1; attempt <= maxRetries; attempt++) {
-            try {
-                String testKey = "test:connection:" + holdId + ":" + attempt;
-                redisTemplate.opsForValue().set(testKey, "test", Duration.ofSeconds(1));
-                String retrieved = redisTemplate.opsForValue().get(testKey);
-                redisTemplate.delete(testKey);
-                
-                if (!"test".equals(retrieved)) {
-                    throw new RuntimeException("Redis test failed - value mismatch");
-                }
-                redisAvailable = true;
-                log.info("✅ Redis connection test successful (attempt {})", attempt);
-                break;
-            } catch (Exception e) {
-                log.warn("⚠️ Redis connection test failed (attempt {}): {}", attempt, e.getMessage());
-                if (attempt == maxRetries) {
-                    log.error("❌ Redis connection failed after {} attempts", maxRetries);
-                    throw new RuntimeException("Redis connection failed after " + maxRetries + " attempts", e);
-                }
-                try {
-                    Thread.sleep(1000 * attempt); // Exponential backoff
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    throw new RuntimeException("Interrupted during Redis retry", ie);
-                }
-            }
+        log.info("Attempting to create hold with ID {} for show {} and seats {}", holdId, showId, seatIds);
+
+        // 1. Check DB for permanent bookings first. This is a fast and critical check.
+        if (showSeatRepo.existsByShowIdAndSeatIdInAndStatus(showId, seatIds, SeatStatus.BOOKED)) {
+            log.warn("Hold failed: One or more seats for show {} are already permanently booked.", showId);
+            throw new SeatAlreadyBookedException("One or more of the selected seats are already booked.");
         }
-        
-        // Try to acquire locks for all seats atomically
+
+        // 2. Atomically acquire temporary holds in Redis.
         List<String> acquiredKeys = new ArrayList<>();
         try {
             for (Long seatId : seatIds) {
                 String key = generateKey(showId, seatId);
-                log.info("🔑 Attempting to acquire key: {}", key);
-                
-                // Modern Redis SET with NX and EX options with retry
-                Boolean success = null;
-                for (int attempt = 1; attempt <= maxRetries; attempt++) {
-                    try {
-                        success = redisTemplate.opsForValue().setIfAbsent(
-                            key,
-                            holdId,
-                            HOLD_DURATION
-                        );
-                        break; // Success, exit retry loop
-                    } catch (Exception e) {
-                        log.warn("⚠️ Redis setIfAbsent failed (attempt {}): {}", attempt, e.getMessage());
-                        if (attempt == maxRetries) {
-                            throw e;
-                        }
-                        try {
-                            Thread.sleep(500 * attempt); // Short backoff
-                        } catch (InterruptedException ie) {
-                            Thread.currentThread().interrupt();
-                            throw new RuntimeException("Interrupted during Redis retry", ie);
-                        }
-                    }
-                }
-                
-                log.info("📊 Redis setIfAbsent result for key '{}': {} (type: {})", 
-                    key, success, success != null ? success.getClass().getSimpleName() : "null");
-                
+                Boolean success = redisTemplate.opsForValue().setIfAbsent(key, holdId, HOLD_DURATION);
+                log.info("Attempted Redis SETNX for key '{}'. Success: {}", key, success);
+
                 if (success == null) {
-                    log.error("❌ Redis setIfAbsent returned null for key: {}", key);
-                    throw new RuntimeException("Redis operation failed - returned null");
+                    log.error("Redis command returned null for key '{}'. This indicates a connection problem.", key);
+                    throw new RuntimeException("Could not hold seats due to a system issue. Please try again.");
                 }
-                
-                if (Boolean.TRUE.equals(success)) {
+
+                if (success) {
                     acquiredKeys.add(key);
-                    log.info("✅ Successfully acquired seat {} for hold {}", seatId, holdId);
                 } else {
-                    // If we couldn't acquire all seats, release the ones we did acquire
-                    log.warn("⚠️ Failed to acquire seat {} for show {} (already held)", seatId, showId);
-                    releaseAcquiredSeats(acquiredKeys, holdId);
-                    throw new SeatAlreadyHeldException("Seat " + seatId + " is already held");
+                    // This is the race condition outcome: another user got this seat first.
+                    log.warn("Failed to acquire seat hold for key '{}'. It was already held.", key);
+                    throw new SeatAlreadyHeldException("Seat " + seatId + " was just held by another user. Please select another seat.");
                 }
             }
-            log.info("🎉 Successfully acquired all seats for hold {}", holdId);
+            log.info("Successfully acquired all {} seats for hold ID {}", acquiredKeys.size(), holdId);
             return holdId;
         } catch (Exception e) {
-            // If any error occurs, release all acquired seats
-            log.error("❌ Error in holdSeats: {}", e.getMessage(), e);
+            // If any error occurs (e.g., SeatAlreadyHeldException or connection error), release any holds we did manage to get.
             releaseAcquiredSeats(acquiredKeys, holdId);
-            if (e instanceof SeatAlreadyHeldException) {
-                throw e;
-            }
-            throw new RuntimeException("Failed to create seat hold: " + e.getMessage(), e);
+            // Re-throw the original exception to be handled by the controller.
+            throw e;
         }
     }
 
     private void releaseAcquiredSeats(List<String> keys, String holdId) {
-        for (String key : keys) {
-            try {
-                // Use Redis transaction to ensure atomic check-and-delete
-                redisTemplate.execute(new SessionCallback<Boolean>() {
-                    @Override
-                    @SuppressWarnings("unchecked")
-                    public <K, V> Boolean execute(RedisOperations<K, V> operations) {
-                        operations.watch((K)key);
-                        String storedHoldId = (String) operations.opsForValue().get((K)key);
-                        if (storedHoldId != null && storedHoldId.equals(holdId)) {
-                            operations.multi();
-                            operations.delete((K)key);
-                            List<Object> results = operations.exec();
-                            return !results.isEmpty();
-                        }
-                        return false;
-                    }
-                });
-                log.debug("Released hold for key {}", key);
-            } catch (Exception e) {
-                log.error("Error releasing hold for key {}: {}", key, e.getMessage());
-            }
+        if (keys == null || keys.isEmpty()) {
+            return;
         }
+        log.info("Releasing {} acquired keys for failed hold attempt {}", keys.size(), holdId);
+        // A simple multi-delete is sufficient for cleanup after a failed `holdSeats` attempt.
+        redisTemplate.delete(keys);
     }
 
     public boolean validateHold(Long showId, String holdId, List<Long> seatIds) {
         log.info("Validating hold {} for show {} and seats {}", holdId, showId, seatIds);
+        List<String> keys = seatIds.stream()
+                .map(seatId -> generateKey(showId, seatId))
+                .collect(Collectors.toList());
         
-        return redisTemplate.execute(new SessionCallback<Boolean>() {
-            @Override
-            @SuppressWarnings("unchecked")
-            public <K, V> Boolean execute(RedisOperations<K, V> operations) {
-                operations.multi();
-                for (Long seatId : seatIds) {
-                    String key = generateKey(showId, seatId);
-                    operations.opsForValue().get((K)key);
-                }
-                List<Object> results = operations.exec();
-                
-                if (results.isEmpty()) return false;
-                
-                for (Object result : results) {
-                    String storedHoldId = (String) result;
-                    if (storedHoldId == null || !storedHoldId.equals(holdId)) {
-                        return false;
-                    }
-                }
-                return true;
+        // MGET is more efficient than multiple GETs in a MULTI/EXEC block for simple validation.
+        List<String> storedHoldIds = redisTemplate.opsForValue().multiGet(keys);
+
+        if (storedHoldIds == null || storedHoldIds.size() != seatIds.size()) {
+             log.warn("Hold validation failed for {}: MGET returned unexpected result.", holdId);
+             return false;
+        }
+
+        // Check if all keys exist and belong to the correct holdId.
+        for (String storedId : storedHoldIds) {
+            if (storedId == null || !storedId.equals(holdId)) {
+                log.warn("Hold validation failed for {}: A seat was not held or held by someone else.", holdId);
+                return false;
             }
-        });
+        }
+        log.info("Hold {} successfully validated.", holdId);
+        return true;
     }
 
     public void releaseHold(Long showId, String holdId, List<Long> seatIds) {
         log.info("Releasing hold {} for show {} and seats {}", holdId, showId, seatIds);
+        List<String> keys = seatIds.stream()
+                .map(seatId -> generateKey(showId, seatId))
+                .collect(Collectors.toList());
         
-        for (Long seatId : seatIds) {
-            String key = generateKey(showId, seatId);
-            try {
-                redisTemplate.execute(new SessionCallback<Boolean>() {
-                    @Override
-                    @SuppressWarnings("unchecked")
-                    public <K, V> Boolean execute(RedisOperations<K, V> operations) {
-                        operations.watch((K)key);
-                        String storedHoldId = (String) operations.opsForValue().get((K)key);
-                        if (storedHoldId != null && storedHoldId.equals(holdId)) {
-                            operations.multi();
-                            operations.delete((K)key);
-                            List<Object> results = operations.exec();
-                            return !results.isEmpty();
-                        }
-                        return false;
-                    }
-                });
-                log.debug("Released hold for key {}", key);
-            } catch (Exception e) {
-                log.error("Error releasing hold for key {}: {}", key, e.getMessage());
-            }
-        }
+        // We can add a WATCH/MULTI/EXEC here for a "safe" release if needed,
+        // but for a confirmed booking, a simple delete is usually sufficient.
+        redisTemplate.delete(keys);
+        log.info("Successfully released hold {}", holdId);
     }
 
     private String generateKey(Long showId, Long seatId) {
         return String.format("%s%d:%d", HOLD_KEY_PREFIX, showId, seatId);
     }
-} 
+}
+
