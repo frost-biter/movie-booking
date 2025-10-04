@@ -60,7 +60,7 @@ public class RedisConfig {
             .testOnBorrow(true)
             .testOnReturn(true)
             .testWhileIdle(true)
-            .timeBetweenEvictionRuns(Duration.ofSeconds(30))
+            .timeBetweenEvictionRunsMillis(30000)
             .build());
         
         LettuceClientConfiguration clientConfig = clientBuilder.build();

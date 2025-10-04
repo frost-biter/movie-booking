@@ -157,7 +157,11 @@
 			<artifactId>jackson-datatype-jsr310</artifactId>
 		</dependency>
 		
-		<!-- REMOVED: Explicit commons-pool2 dependency - let Spring Boot manage the version -->
+		<!-- Apache Commons Pool2 for Redis connection pooling -->
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-pool2</artifactId>
+		</dependency>
  </dependencies>
 
 	<build>
