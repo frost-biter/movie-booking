@@ -1,5 +1,6 @@
 package com.movie.bookMyShow.controller;
 
+import lombok.extern.slf4j.Slf4j;
 import com.movie.bookMyShow.dto.ApiResponse;
 import com.movie.bookMyShow.dto.CredentialsRequest;
 import com.movie.bookMyShow.dto.ShowRequest;
@@ -18,6 +19,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import java.time.Duration;
 import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/admin")
 public class AdminController {
