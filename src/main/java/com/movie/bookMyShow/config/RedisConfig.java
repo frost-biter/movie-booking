@@ -27,67 +27,41 @@ public class RedisConfig {
     private String redisPassword;
 
     @Value("${spring.data.redis.ssl.enabled:false}")
-    private boolean redisSsl;
+    private boolean redisSslEnabled;
 
     @Bean
     public LettuceConnectionFactory redisConnectionFactory() {
-        log.info("🚀 Initializing Redis Configuration for Upstash");
-        log.info("🔧 Redis Host: {}", redisHost);
-        log.info("🔧 Redis Port: {}", redisPort);
-        log.info("🔧 Redis SSL Enabled: {}", redisSsl);
-        log.info("🔧 Redis Password Provided: {}", redisPassword != null && !redisPassword.isEmpty());
-        
-        try {
-            RedisStandaloneConfiguration config = new RedisStandaloneConfiguration();
-            config.setHostName(redisHost);
-            config.setPort(redisPort);
-            
-            if (redisPassword != null && !redisPassword.isEmpty()) {
-                config.setPassword(redisPassword);
-                log.info("✅ Redis password configured");
-            } else {
-                log.warn("⚠️ No Redis password provided - this might cause connection issues");
-            }
+        log.info("🚀 Initializing Simplified Redis Configuration...");
+        log.info("🔧 Host: {}, Port: {}, SSL Enabled: {}", redisHost, redisPort, redisSslEnabled);
 
-            LettuceClientConfiguration.LettuceClientConfigurationBuilder clientBuilder = LettuceClientConfiguration.builder();
-            
-            // Enable SSL for Upstash (most Upstash instances require SSL)
-            if (redisSsl) {
-                log.info("🔒 Enabling SSL for Redis connection");
-                clientBuilder.useSsl();
-            } else {
-                log.warn("⚠️ SSL disabled - Upstash typically requires SSL");
-            }
-            
-            // Optimized timeouts for Upstash
-            clientBuilder.commandTimeout(Duration.ofSeconds(10));
-            clientBuilder.shutdownTimeout(Duration.ofSeconds(5));
-            
-            // Connection pool settings optimized for Upstash
-            clientBuilder.poolConfig(org.apache.commons.pool2.impl.GenericObjectPoolConfig.builder()
-                .maxTotal(8)
-                .maxIdle(4)
-                .minIdle(1)
-                .testOnBorrow(true)
-                .testOnReturn(true)
-                .testWhileIdle(true)
-                .timeBetweenEvictionRunsMillis(30000)
-                .build());
-            
-            LettuceClientConfiguration clientConfig = clientBuilder.build();
-            LettuceConnectionFactory factory = new LettuceConnectionFactory(config, clientConfig);
-
-            // Critical settings for cloud Redis
-            factory.setValidateConnection(true);
-            factory.setShareNativeConnection(false);
-            
-            log.info("✅ Redis connection factory configured successfully");
-            return factory;
-            
-        } catch (Exception e) {
-            log.error("❌ Failed to configure Redis connection factory: {}", e.getMessage(), e);
-            throw new RuntimeException("Redis configuration failed", e);
+        // 1. Set up the connection details
+        RedisStandaloneConfiguration config = new RedisStandaloneConfiguration();
+        config.setHostName(redisHost);
+        config.setPort(redisPort);
+        if (redisPassword != null && !redisPassword.isEmpty()) {
+            config.setPassword(redisPassword);
         }
+
+        // 2. Configure client-side options like SSL and timeouts
+        LettuceClientConfiguration.LettuceClientConfigurationBuilder clientBuilder = LettuceClientConfiguration.builder();
+        
+        if (redisSslEnabled) {
+            log.info("🔒 SSL is enabled for Redis connection.");
+            clientBuilder.useSsl();
+        }
+        
+        // A reasonable timeout is crucial for cloud environments
+        clientBuilder.commandTimeout(Duration.ofSeconds(5));
+
+        // 3. Create the factory
+        LettuceConnectionFactory factory = new LettuceConnectionFactory(config, clientBuilder.build());
+
+        // 4. THIS IS THE MOST IMPORTANT SETTING FOR STABILITY
+        // It ensures the connection pool always gives you a live, working connection, preventing stale connection errors.
+        factory.setValidateConnection(true);
+        log.info("✅ Connection validation is ENABLED. The pool will test connections before use.");
+
+        return factory;
     }
 
     @Bean
@@ -95,13 +69,14 @@ public class RedisConfig {
         RedisTemplate<String, String> template = new RedisTemplate<>();
         template.setConnectionFactory(connectionFactory);
 
+        // Use String serializers for both keys and values
         StringRedisSerializer stringSerializer = new StringRedisSerializer();
         template.setKeySerializer(stringSerializer);
         template.setValueSerializer(stringSerializer);
         template.setHashKeySerializer(stringSerializer);
         template.setHashValueSerializer(stringSerializer);
 
-        // Required for SessionCallback (WATCH/MULTI/EXEC) to work correctly.
+        // Enable transaction support for WATCH/MULTI/EXEC operations
         template.setEnableTransactionSupport(true);
 
         return template;
