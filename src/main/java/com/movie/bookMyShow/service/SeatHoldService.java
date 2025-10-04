@@ -33,21 +33,8 @@ public class SeatHoldService {
         log.info("Checking seat availability for show: {} and seats: {}", showId, seatIds);
         
         try {
-            // 1. Check Redis for temporary holds
-            for (Long seatId : seatIds) {
-                String key = generateKey(showId, seatId);
-                log.info("➡️  Checking Redis for hold key: {}", key);
-                Boolean hasKey = redisTemplate.hasKey(key);
-                log.info("⬅️  Redis hasKey({}) => {}", key, hasKey);
-                
-                if (Boolean.TRUE.equals(hasKey)) {
-                    log.info("Seat {} for show {} is already held", seatId, showId);
-                    throw new SeatAlreadyHeldException("Seat " + seatId + " is already held");
-                }
-            }
-
-            log.info("Proceeding to DB check for permanent bookings for show: {}", showId);
-            // 2. Check DB for permanent bookings
+            // Only check DB for permanent bookings - Redis holds are checked atomically in holdSeats()
+            log.info("Checking DB for permanent bookings for show: {}", showId);
             boolean isBooked = showSeatRepo.existsByShowIdAndSeatIdInAndStatus(showId, seatIds, SeatStatus.BOOKED);
             log.info("DB check for permanent bookings: {}", isBooked);
             
@@ -57,11 +44,11 @@ public class SeatHoldService {
             
             return true;
         } catch (Exception e) {
-            if (e instanceof SeatAlreadyHeldException || e instanceof SeatAlreadyBookedException) {
+            if (e instanceof SeatAlreadyBookedException) {
                 throw e;
             }
-            log.error("❌ Redis connection error while checking seat availability: {}", e.getMessage(), e);
-            throw new RuntimeException("Unable to connect to Redis. Please try again later.", e);
+            log.error("❌ Error while checking seat availability: {}", e.getMessage(), e);
+            throw new RuntimeException("Unable to check seat availability. Please try again later.", e);
         }
     }
 

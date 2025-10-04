@@ -53,10 +53,11 @@ public class BookingService {
                         .orElseThrow(() -> new ResourceNotFoundException("Seat not found: " + seatId)))
                 .toList();
 
-        // 3. Check seat availability in Redis and DB
-        if (seatHoldService.areSeatsAvailable(request.getShowId(), request.getSeatIds())) {
-            // 4. Create hold in Redis
-            String holdId = seatHoldService.holdSeats(request.getShowId(), request.getSeatIds());
+        // 3. Check seat availability in DB only (Redis holds checked atomically in holdSeats)
+        seatHoldService.areSeatsAvailable(request.getShowId(), request.getSeatIds());
+        
+        // 4. Create hold in Redis (this will atomically check and acquire seats)
+        String holdId = seatHoldService.holdSeats(request.getShowId(), request.getSeatIds());
 
             // Calculate and set price
             double price = calculatePrice(request.getSeatIds(), request.getPaymentMethod());
@@ -69,14 +70,11 @@ public class BookingService {
                 depositAddress = cryptoGateway.generateDepositAddress(holdId);
                 request.setPublicKey(depositAddress);
             }
-            paymentService.processPaymentAsync(holdId, request, show, seats);
-            if( depositAddress == null) {
-                depositAddress = holdId; // For non-crypto payments
-            }
-            return new BookingResponse("Payment Process Initiated and seat held for 5mins", holdId, depositAddress, request.getPaymentMethod(), price);
-        } else {
-            throw new SeatAlreadyHeldException("Seats are not available");
+        paymentService.processPaymentAsync(holdId, request, show, seats);
+        if( depositAddress == null) {
+            depositAddress = holdId; // For non-crypto payments
         }
+        return new BookingResponse("Payment Process Initiated and seat held for 5mins", holdId, depositAddress, request.getPaymentMethod(), price);
     }
 
     private double calculatePrice(List<Long> seatIds, String paymentMethod) {
