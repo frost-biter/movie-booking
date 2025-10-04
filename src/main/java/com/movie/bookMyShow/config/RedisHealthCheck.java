@@ -26,6 +26,8 @@ public class RedisHealthCheck implements CommandLineRunner {
             String retrievedValue = redisTemplate.opsForValue().get(testKey);
             
             if (testValue.equals(retrievedValue)) {
+                log.info("Original value: {}", testValue);
+                log.info("Retrieved value: {}", retrievedValue);
                 log.info("✅ Redis connection is working properly!");
                 // Clean up test key
                 redisTemplate.delete(testKey);
